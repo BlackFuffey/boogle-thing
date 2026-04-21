@@ -2,9 +2,6 @@ package boogle;
 
 import java.util.*;
 
-import boogle.Player;
-
-
 public class AIPlayer implements Player {
 
     public enum Level{
@@ -62,7 +59,7 @@ public class AIPlayer implements Player {
                 }
         }
 
-        // no move was successfully made, forfeit turn
+        // no move was successfully made, skip turn
         return null;
     }
 
