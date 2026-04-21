@@ -4,10 +4,11 @@ import java.util.Scanner;
 
 public class ConsolePlayer implements Player {
     private String prompt;
-    private Scanner console = new Scanner(System.in);
+    private Scanner console;
 
-    public ConsolePlayer(String prompt) {
+    public ConsolePlayer(String prompt, Scanner scanner) {
         this.prompt = prompt;
+        this.console = scanner;
     }
 
     public String nextMove(String[] prevMoves) {
