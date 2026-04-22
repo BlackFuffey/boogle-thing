@@ -12,7 +12,7 @@ public class ConsolePlayer implements Player {
     }
 
     public String nextMove(String[] prevMoves) {
-        System.out.println("\nTo skip your turn, enter '-skip'");
+        System.out.println("\nEnter your word, or '-skip' to skip this turn");
         System.out.print(prompt);
 
         String input = console.nextLine();
