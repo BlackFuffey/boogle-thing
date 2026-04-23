@@ -1,19 +1,27 @@
 package boogle;
 
-import java.util.Scanner;
+import java.util.*;
 
 public class ConsolePlayer implements Player {
-    private String prompt;
+    private String name;
     private Scanner console;
 
-    public ConsolePlayer(String prompt, Scanner scanner) {
-        this.prompt = prompt;
+    public ConsolePlayer(String name, Scanner scanner) {
+        this.name = name;
         this.console = scanner;
     }
 
-    public String nextMove(String[] prevMoves) {
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return this.name;
+    }
+
+    public String nextMove(Gameboard gb, HashSet<String> wordlist, String[] prevMoves) {
         System.out.println("\nEnter your word, or '-skip' to skip this turn");
-        System.out.print(prompt);
+        System.out.print(name + ", make your move: ");
 
         String input = console.nextLine();
 

@@ -6,22 +6,49 @@ import boogle.Gameboard.GameboardWalker;
 
 public class AIPlayer implements Player {
 
-    public enum Level{
-        PERFECT,    // always makes best move
-        SMART,      // randomly select from better half of possibilities
-        GOOD,       // randomly select from all possibilities
-        NORMAL,     // randomly select from worse half of possibilities
-        DUMB        // always makes worst move
+    public enum Level {
+        PERFECT(5),   // always makes best move
+        SMART(4),     // randomly select from better half
+        GOOD(3),      // randomly select from all possibilities
+        NORMAL(2),    // worse half
+        DUMB(1);      // worst move
+
+        private final int value;
+
+        Level(int value) {
+            this.value = value;
+        }
+
+        public int getValue() {
+            return value;
+        }
     }
 
     private Level level;
 
-    private FastOrderedSet<String> available = new FastOrderedSet<>();
+    public Level getLevel() { return this.level; }
+
+    private FastOrderedSet<String> available = null;
 
     private Random random = new Random();
 
-    public AIPlayer(Gameboard board, String[] wordlist, Level level) {
+    private String name;
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public AIPlayer(String name, Level level) {
         this.level = level;
+        this.name = name;
+    }
+
+    private void initialize(Gameboard board, HashSet<String> wordlist) {
+        this.available = new FastOrderedSet<>();
 
         Tree<Character> trieRoot = new Tree<>(null);
         
@@ -107,7 +134,13 @@ public class AIPlayer implements Player {
         return builder.toString();
     }
 
-    public String nextMove(String[] prevMoves) {
+    public String nextMove(Gameboard board, HashSet<String> wordlist, String[] prevMoves) {
+        System.out.println(this.getName() + " is thinking...");
+
+        if (this.available == null) {
+            initialize(board, wordlist);
+        }
+
         // update available move list
         for (String move : prevMoves) {
             available.remove(move);
@@ -136,12 +169,12 @@ public class AIPlayer implements Player {
                 
                 int i = 0;
                 for (String move : useUpperHalf ? available.reverse() : available) {
-                    if (i == target) return move;
+                    if (i == target)
+                        return move;
                     i++;
                 }
         }
 
-        // no move was successfully made, skip turn
         return null;
     }
 
