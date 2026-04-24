@@ -1,5 +1,7 @@
 import java.util.*;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import boogle.*;
 
@@ -11,6 +13,9 @@ public class Main {
         try {
             Terminal.enterAltBuffer();
             GameOptions options = menu();
+
+            if (options == null)
+                return;
         } finally {
             Terminal.exitAltBuffer();
             Terminal.showCursor();
@@ -18,15 +23,19 @@ public class Main {
     }
 
     private static class GameOptions {
-        LinkedList<Player> playerlist;
+        ArrayList<Player> playerlist;
+        String wordlistPath;
+        String boardPath;
         int minWordLength;
         int winScore;
     }
     static GameOptions menu() throws FileNotFoundException, IOException{
         GameOptions options = new GameOptions();
-        options.playerlist = new LinkedList<>();
+        options.playerlist = new ArrayList<>();
         options.winScore = 0;
         options.minWordLength = 0;
+        options.wordlistPath = "wordlist.txt";
+        options.boardPath = null;
 
         for (;;) {
             Terminal.hideCursor();
@@ -34,62 +43,132 @@ public class Main {
             printTitleScreen();
             console.nextLine();
 
-            menu:for(;;) {
+            for(;;) {
                 Terminal.clearScreen();
                 printMenuScreen(options);
                 Terminal.showCursor();
                 System.out.print("\n\nboogle> ");
 
-                String[] cmd = padArray(console.nextLine()
-                                            .trim()
-                                        .split(" ", 2),
-                               2, "");
+                String[] cmd = padArray(console.nextLine().trim().split(" ", 2), 2, "");
                 Terminal.hideCursor();
 
                 switch(cmd[0].toLowerCase()) {
-                    case "add":
-                        String[] addArgs = padArray(cmd[1].split(" ", 2), 2, "");
+                    case "set": {
+                        String[] args = padArray(cmd[1].split(" ", 2), 2, "");
+                        System.out.print(
+                            setOption(options, args[0], args[1]) ?
+                            "Game option updated\n" : ""
+                        );
+                    } break;
 
-                        if (addArgs[0].toLowerCase().equals("human")) {
-                            options.playerlist.add(new ConsolePlayer(addArgs[1], console));
-                            System.out.printf("Human player '%s' is now player #%d", addArgs[1], options.playerlist.size());
+                    case "add": {
+                        String[] args = padArray(cmd[1].split(" ", 2), 2, "");
+
+                        if (args[0].toLowerCase().equals("human")) {
+                            options.playerlist.add(new ConsolePlayer(args[1], console));
+                            System.out.printf("Human player '%s' is now player #%d", args[1], options.playerlist.size());
                             break;
                         }
 
-                        if (addArgs[0].toLowerCase().equals("ai")) {
-                            options.playerlist.add(new AIPlayer(addArgs[1], AIPlayer.Level.NORMAL));
-                            System.out.printf("AI player '%s' is now player #%d", addArgs[1], options.playerlist.size());
+                        if (args[0].toLowerCase().equals("ai")) {
+                            options.playerlist.add(new AIPlayer(args[1], AIPlayer.Level.NORMAL));
+                            System.out.printf("AI player '%s' is now player #%d", args[1], options.playerlist.size());
                             break;    
                         }
 
-                        System.out.printf("Invalid player type '%s', use either 'human' or 'AI'", addArgs[0]);
-                    break;
+                        System.out.printf("Invalid player type '%s', use either 'human' or 'AI'", args[0]);
+                    } break;
                         
-                    case "rename":
-                        String[] renameArgs = padArray(cmd[1].split(" ", 2), 2, "");
+                    case "rename": {
+                        String[] args = padArray(cmd[1].split(" ", 2), 2, "");
 
-                        Player target = resolvePlayerNum(options.playerlist, renameArgs[0]);
+                        Player target = resolvePlayerNum(options.playerlist, args[0]);
 
                         if (target == null) {
-                            System.out.printf("Got invalid player number '%s'\n", renameArgs[0]);
+                            System.out.printf("Invalid player number '%s'\n", args[0]);
                             break;
                         }
 
-                        target.setName(renameArgs[1]);
+                        target.setName(args[1]);
                         System.out.println("Name updated");
-                    break;
+                    } break;
+
+                    case "level": {
+                        String[] args = padArray(cmd[1].split(" ", 2), 2, "");
+
+                        Player target = resolvePlayerNum(options.playerlist, args[0]);
+
+                        if (target == null) {
+                            System.out.printf("Invalid player number '%s'\n", args[0]);
+                            break;
+                        }
+
+                        if (!(target instanceof AIPlayer)) {
+                            System.out.println("Specified player is not an AI");
+                            break;
+                        }
+
+                        try {
+                            ((AIPlayer) target).setLevel(AIPlayer.Level.fromValue(
+                                Integer.parseInt(args[1])
+                            ));
+                            System.out.println("AI level updated");
+                        } catch (Exception e) {
+                            System.out.println("Invalid AI level, use an integer between 1-5");
+                        }
+                    } break;
+
+                    case "move": {
+                        String[] args = padArray(cmd[1].split(" ", 2), 2, "");
+                        int from, to;
+
+                        try { from = parsePlayerNum(options.playerlist, args[0]); }
+                        catch (Exception e) {
+                            System.out.println("Invalid target player number");
+                            break;
+                        }
+
+                        try { to = parsePlayerNum(options.playerlist, args[1]); }
+                        catch (Exception e) {
+                            System.out.println("Invalid destination player number");
+                            break;
+                        }
+
+                        Player target = options.playerlist.get(from);
+
+                        options.playerlist.remove(from);
+                        options.playerlist.add(to, target);
+                        System.out.println("Player moved");
+                    } break;
                         
-                    case "start":
+                    case "remove": {
+                        String[] args = padArray(cmd[1].split(" ", 2), 2, "");
+
+                        try {
+                            int target = parsePlayerNum(options.playerlist, args[0]);
+                            options.playerlist.remove(target);
+                            System.out.println("Player removed");
+                        } catch (Exception e) {
+                            System.out.println("Invalid target player number");
+                        }
+                    } break;
+
+                    case "start": {
                         if (options.playerlist.size() != 0)
                             return options;
                         System.out.println("Cannot start game with 0 players!");
-                    break;
+                    } break;
 
-                    case "quit": break menu;
+                    case "quit": { return null; }
 
-                    default:
+                    case "help": {
+                        Terminal.clearScreen();
+                        printTutorial();
+                    } break;
+
+                    default: {
                         System.out.printf("I don't understand '%s'.\n See the 'Commands' section on top for list of commands.\n", cmd[0]);
-                    break;
+                    } break;
                 }
 
                 System.out.println("\n-- Press enter to continue --");
@@ -113,47 +192,107 @@ public class Main {
         return padded;
     }
 
-    static Player resolvePlayerNum(LinkedList<Player> playerlist, String playerNumStr) {
-        playerNumStr = playerNumStr.toLowerCase();
-
+    static Player resolvePlayerNum(List<Player> playerlist, String playerNumStr) {
         try {
-            int playerNum = Integer.parseInt(playerNumStr.replace("p", ""));
-
-            if (playerNum < 1 || playerNum > playerlist.size())
-                throw new Exception();
-
-            return playerlist.get(playerNum-1);
+            return playerlist.get(parsePlayerNum(playerlist, playerNumStr));
         } catch (Exception e) {
             return null;
         }
     }
 
+    static int parsePlayerNum(List<Player> playerlist, String playerNumStr) {
+        playerNumStr = playerNumStr.toLowerCase();
+
+        int playerNum = Integer.parseInt(playerNumStr.replace("p", ""))-1;
+
+        if (playerNum < 0 || playerNum >= playerlist.size())
+            throw new IllegalArgumentException();
+
+        return playerNum;
+    }
+
+    static boolean setOption(GameOptions options, String key, String value) {
+        switch(key) {
+            case "win_score":
+                try { 
+                    options.winScore = Integer.parseInt(value);
+                    if (options.winScore < 0)
+                        throw new Exception();
+                }
+                catch(Exception e) {
+                    System.out.println("Invalid winning score value");
+                    System.out.println("Enter an integer bigger than 0, or use 0 for endless mode");
+                    return false;
+                }
+            break;
+
+            case "min_word_length":
+                try { 
+                    options.minWordLength = Integer.parseInt(value);
+                    if (options.minWordLength < 0)
+                        throw new Exception();
+                } catch(Exception e) {
+                    System.out.println("Invalid minimum word length value");
+                    System.out.println("Enter an integer bigger than 0, or use 0 for no limit");
+                    return false;
+                }
+            break;
+
+            case "wordlist":
+                try { 
+                    (new FileReader(value)).close();
+                    options.wordlistPath = value;
+                } catch (IOException e) {
+                    System.out.println("Unable to use file: "+e.getMessage());
+                    return false;
+                }
+            break;
+
+            case "board":
+                try { 
+                    if (value.isEmpty())
+                        options.boardPath = null;
+                    else {
+                        (new FileReader(value)).close();
+                        options.boardPath = value;
+                    }
+                } catch (IOException e) {
+                    System.out.println("Unable to use file: "+e.getMessage());
+                    System.out.println("Leave path empty if you wish for board to be randomly generated");
+                    return false;
+                }
+            break;
+
+            default:
+                System.out.println("I don't know about that option");
+                System.out.println("TIP: use the part inside of square bracket in front of the option you wish to modify");
+                return false;
+        }
+
+        return true;
+    }
+
+    static void printTutorial() throws IOException {
+        FileInputStream logo = new FileInputStream("ui/tutorial.txt");
+        logo.transferTo(System.out);
+        logo.close();
+    }
+
     static void printTitleScreen() throws FileNotFoundException, IOException {
-        FileInputStream logo = new FileInputStream("logo.txt");
+        FileInputStream logo = new FileInputStream("ui/logo.txt");
         logo.transferTo(System.out);
         logo.close();
 
-        System.out.println("\n-- Press enter to start a new game, or press Ctrl-C to quit --\n");
+        System.out.println("\n\t\t\t-- Press enter to continue --\n");
     }
 
-    static void printMenuScreen(GameOptions options) {
-        System.out.println(
-            "==== Commands ====\n" +
-            "set <option> <value>\t--\t Modify game option\n" +
-            "rename <P#> <name>\t--\t Rename player\n" +
-            "level <P#> <level>\t--\t Change AI player level\n" +
-            "move <P#> <P#>\t\t--\t Change player turn order\n" +
-            "add <human|AI> <name>\t--\t Add player\n" +
-            "remove <P#>\t\t--\t Remove player\n" +
-            "start\t\t\t--\t Start game\n" +
-            "quit\t\t\t--\t Return to title\n" +
-            "\n"+
-            "==== Game Options ====\n" +
-            "[win_score] Winning Score: " + (options.winScore==0 ? "Endless" : options.winScore) + "\n" +
-            "[min_word_length] Minimum Word Length: " + (options.minWordLength==0 ? "No minimum word length limit" : options.minWordLength) + "\n" +
-            "\n" +
-            "==== Players ====\n"
-
+    static void printMenuScreen(GameOptions options) throws IOException{
+        System.out.printf(
+            new String(Files.readAllBytes(Paths.get("ui/menu.txt"))),
+            options.winScore == 0 ? "Endless" : ""+options.winScore,
+            options.minWordLength == 0 ? "No minimum word length limit" : ""+options.minWordLength,
+            options.wordlistPath,
+            options.boardPath == null ? "Generated" : options.boardPath
         );
 
         int i = 0;

@@ -1,0 +1,19 @@
+==== Commands ====
+set <option> <value>	--	Modify game option
+rename <P#> <name>	--	Rename player
+level <P#> <level>	--	Change AI player level
+move <P#> <P#>		--	Change player turn order
+add <human|AI> <name>	--	Add player
+remove <P#>		--	Remove player
+start			--	Start game
+quit			--	Quit boogle
+help			--	Tutorial
+
+==== Game Options ====
+[win_score] Winning Score: %s
+[min_word_length] Minimum Word Length: %s
+[wordlist] Wordlist File: %s
+[board] Gameboard File: %s
+
+==== Players ====
+
