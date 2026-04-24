@@ -18,6 +18,17 @@ public class Main {
             options.minWordLength = 0;
             options.wordlistPath = "wordlist.txt";
             options.boardPath = null;
+
+            for (int i = 0; i < options.playerlist.size(); i++) {
+                Player player = options.playerlist.get(i);
+                if (player instanceof AIPlayer) {
+                    AIPlayer oldAI = (AIPlayer) player;
+                    AIPlayer newAI = new AIPlayer(oldAI.getName(), oldAI.getLevel());
+
+                    options.playerlist.set(i, newAI);
+                }
+            }
+
             for (;;) {
                 Terminal.enterAltBuffer();
                 options = menu(options);

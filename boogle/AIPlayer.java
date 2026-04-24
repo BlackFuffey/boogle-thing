@@ -12,8 +12,8 @@ public class AIPlayer implements Player {
         PERFECT(5),   // always makes best move
         SMART(4),     // randomly select from better half
         GOOD(3),      // randomly select from all possibilities
-        NORMAL(2),    // worse half
-        DUMB(1);      // worst move
+        NORMAL(2),    // randomly select from worse half
+        DUMB(1);      // always make worst move
 
         private final int value;
 
