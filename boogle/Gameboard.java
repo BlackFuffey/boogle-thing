@@ -24,12 +24,13 @@ public class Gameboard {
         }
 
         private GameboardWalker(Gameboard board, int x, int y, HashSet<Integer> visited) {
+            this.gb = board;
+
             if (!isPosValid(x, y))
                 throw new IllegalArgumentException("GameboardWalker got invalid position ("+x+", "+y+")");
 
             this.x = x;
             this.y = y;
-            this.gb = board;
             this.visited = new HashSet<>(visited);
 
             this.visited.add(pair(x, y));

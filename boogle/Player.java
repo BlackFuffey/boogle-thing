@@ -1,9 +1,9 @@
 package boogle;
 
-import java.util.HashSet;
+import java.util.*;
 
 public interface Player {
-    public String nextMove(Gameboard board, HashSet<String> wordlist, String[] prevMoves);
+    public String nextMove(Gameboard board, Set<String> dictionary, ArrayList<String> playedWords);
     public void setName(String name);
     public String getName();
 }

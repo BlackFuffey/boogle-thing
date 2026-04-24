@@ -3,6 +3,8 @@ package boogle;
 import java.util.*;
 
 import boogle.Gameboard.GameboardWalker;
+import boogle.util.FastOrderedSet;
+import boogle.util.Tree;
 
 public class AIPlayer implements Player {
 
@@ -43,6 +45,8 @@ public class AIPlayer implements Player {
 
     private String name;
 
+    private int lastPlayedUpdate = 0;
+
     public void setName(String name) {
         this.name = name;
     }
@@ -56,13 +60,13 @@ public class AIPlayer implements Player {
         this.name = name;
     }
 
-    private void initialize(Gameboard board, HashSet<String> wordlist) {
+    private void initialize(Gameboard board, Set<String> dictionary) {
         this.available = new FastOrderedSet<>();
 
         Tree<Character> trieRoot = new Tree<>(null);
         
         // build trie of wordlist
-        for (String word : wordlist) {
+        for (String word : dictionary) {
             Tree<Character> currentRoot = trieRoot;
 
             // optimization to avoid repeated method calls
@@ -143,17 +147,18 @@ public class AIPlayer implements Player {
         return builder.toString();
     }
 
-    public String nextMove(Gameboard board, HashSet<String> wordlist, String[] prevMoves) {
+    public String nextMove(Gameboard board, Set<String> dictionary, ArrayList<String> playedWords) {
         System.out.println(this.getName() + " is thinking...");
 
         if (this.available == null) {
-            initialize(board, wordlist);
+            initialize(board, dictionary);
         }
 
         // update available move list
-        for (String move : prevMoves) {
-            available.remove(move);
+        for (int i = lastPlayedUpdate; i < playedWords.size(); i++) {
+            available.remove(playedWords.get(i));
         }
+        lastPlayedUpdate = playedWords.size()-1;
 
         // make a move according to the AI level
         switch(this.level) {

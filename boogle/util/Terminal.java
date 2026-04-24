@@ -1,25 +1,27 @@
+package boogle.util;
+
 public class Terminal {
-    static void enterAltBuffer() {
+    public static void enterAltBuffer() {
         System.out.print("\u001B[?1049h");
         System.out.flush();
     }
 
-    static void exitAltBuffer() {
+    public static void exitAltBuffer() {
         System.out.print("\u001B[?1049l");
         System.out.flush();
     }
 
-    static void clearScreen() {
+    public static void clearScreen() {
         System.out.print("\u001B[2J\u001B[H");
         System.out.flush();
     }
 
-    static void hideCursor() {
+    public static void hideCursor() {
         System.out.print("\u001B[?25l");
         System.out.flush();
     }
 
-    static void showCursor() {
+    public static void showCursor() {
         System.out.print("\u001B[?25h");
         System.out.flush();
     }

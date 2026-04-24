@@ -4,6 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import boogle.*;
+import boogle.util.Terminal;
 
 public class Main {
     
@@ -11,11 +12,32 @@ public class Main {
 
     public static void main(String[] args) throws FileNotFoundException, IOException {
         try {
-            Terminal.enterAltBuffer();
-            GameOptions options = menu();
+            GameOptions options = new GameOptions();
+            options.playerlist = new ArrayList<>();
+            options.winScore = 0;
+            options.minWordLength = 0;
+            options.wordlistPath = "wordlist.txt";
+            options.boardPath = null;
+            for (;;) {
+                Terminal.enterAltBuffer();
+                options = menu(options);
 
-            if (options == null)
+                if (options == null)
                 return;
+
+                HashSet<String> dictionary = new HashSet<>();
+
+                Scanner wordlist = new Scanner(new File(options.wordlistPath));
+                while (wordlist.hasNext()) {
+                    dictionary.add(wordlist.nextLine().toUpperCase());
+                }
+                wordlist.close();
+
+                // TODO: implement custom board
+
+                GameMaster gm = new GameMaster(options.playerlist, dictionary, null, options.minWordLength, options.winScore, console);
+                gm.begin();
+            }
         } finally {
             Terminal.exitAltBuffer();
             Terminal.showCursor();
@@ -29,13 +51,7 @@ public class Main {
         int minWordLength;
         int winScore;
     }
-    static GameOptions menu() throws FileNotFoundException, IOException{
-        GameOptions options = new GameOptions();
-        options.playerlist = new ArrayList<>();
-        options.winScore = 0;
-        options.minWordLength = 0;
-        options.wordlistPath = "wordlist.txt";
-        options.boardPath = null;
+    static GameOptions menu(GameOptions options) throws FileNotFoundException, IOException{
 
         for (;;) {
             Terminal.hideCursor();

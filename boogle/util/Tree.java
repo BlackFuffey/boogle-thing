@@ -1,4 +1,4 @@
-package boogle;
+package boogle.util;
 
 import java.util.HashMap;
 

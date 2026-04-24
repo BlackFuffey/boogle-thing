@@ -19,7 +19,7 @@ public class ConsolePlayer implements Player {
         return this.name;
     }
 
-    public String nextMove(Gameboard gb, HashSet<String> wordlist, String[] prevMoves) {
+    public String nextMove(Gameboard gb, Set<String> wordlist, ArrayList<String> playedWords) {
         System.out.println("\nEnter your word, or '-skip' to skip this turn");
         System.out.print(name + ", make your move: ");
 
