@@ -158,7 +158,7 @@ public class AIPlayer implements Player {
         for (int i = lastPlayedUpdate; i < playedWords.size(); i++) {
             available.remove(playedWords.get(i));
         }
-        lastPlayedUpdate = playedWords.size()-1;
+        lastPlayedUpdate = Math.max(playedWords.size()-1, 0);
 
         // make a move according to the AI level
         switch(this.level) {

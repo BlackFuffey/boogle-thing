@@ -91,7 +91,7 @@ public class GameMaster {
             move = move.toUpperCase();
 
             if (move.length() < minWordLen) {
-                System.out.printf("Word too short! A word must contain at least %d letters\n", minWordLen);
+                System.out.printf("Word too short! Minimal word length is %d\n", minWordLen);
                 atPlayer--;
                 continue;
             }
@@ -125,7 +125,7 @@ public class GameMaster {
 
             scoreboard.put(currentPlayer, scoreboard.get(currentPlayer)+scoreGained);
 
-            if (scoreboard.get(currentPlayer) >= winScore)
+            if (winScore > 0 && scoreboard.get(currentPlayer) >= winScore)
                 break;
         } finally {
             System.out.println("\n==== Press enter to continue ====");
