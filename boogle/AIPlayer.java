@@ -19,14 +19,23 @@ public class AIPlayer implements Player {
             this.value = value;
         }
 
+        public static Level fromValue(int value) {
+            for (Level l : Level.values()) {
+                if (l.getValue() == value) {
+                    return l;
+                }
+            }
+            throw new IllegalArgumentException();
+        }
+
         public int getValue() {
             return value;
         }
     }
 
     private Level level;
-
     public Level getLevel() { return this.level; }
+    public void setLevel(Level level) { this.level = level; }
 
     private FastOrderedSet<String> available = null;
 
