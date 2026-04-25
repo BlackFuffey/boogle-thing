@@ -33,11 +33,13 @@ public class GameMaster {
 
     public void begin() throws IOException {
         HashMap<Player, Integer> scoreboard = new HashMap<>();
+        HashMap<Player, Integer> skipboard = new HashMap<>();
         HashSet<String> playedWords = new HashSet<>();
         ArrayList<String> playedWordList = new ArrayList<>();
 
         for (Player player : playerlist) {
             scoreboard.put(player, 0);
+            skipboard.put(player, 0);
         }
 
         int atPlayer = 0;
@@ -48,6 +50,7 @@ public class GameMaster {
             atPlayer = (atPlayer+1) % playerlist.size()
         ) try {
             Terminal.clearScreen();
+            Terminal.showCursor();
 
             Player currentPlayer = playerlist.get(atPlayer);
 
@@ -80,11 +83,13 @@ public class GameMaster {
 
             String move = currentPlayer.nextMove(gameboard, dictionary, playedWordList);
 
+            Terminal.hideCursor();
             System.out.println();
 
             if (move == null) {
                 System.out.println(currentPlayer.getName() + " skipped their turn!");
                 skipChain++;
+                skipboard.put(currentPlayer, skipboard.get(currentPlayer)+1);
                 continue;
             }
 
@@ -138,17 +143,36 @@ public class GameMaster {
         FileInputStream stream = new FileInputStream("ui/results_head.txt");
         stream.transferTo(System.out);
         stream.close();
+        
+        int totalSkips = skipboard.values().stream().reduce(0, (a, b) -> a + b);
+
+        System.out.println(
+            "┃    Calories" +
+            StringUtils.padStart(
+                String.format("%d    ┃", totalSkips*10),
+                31, ' '
+            )
+        );
+
+        stream = new FileInputStream("ui/results_body.txt");
+        stream.transferTo(System.out);
+        stream.close();
 
         playerlist.sort((a, b) -> scoreboard.get(b) - scoreboard.get(a));
         for (Player player : playerlist) {
-            String name = player.getName();
+            String name = StringUtils.truncateWithEllipsis(player.getName(), 16);
             int score = scoreboard.get(player);
+            int skips = skipboard.get(player);
 
             System.out.println(
-                StringUtils.padEnd(String.format("┃    %s", name), 49, ' ') +
-                StringUtils.padStart(String.format("%d    ┃", score), 22, ' ')
+                StringUtils.padEnd(String.format("┃    %s (%dc)", name, score), 30, ' ') +
+                StringUtils.padStart(
+                    String.format(
+                        "%d%%    ┃",
+                        (int)Math.round((float)skips/totalSkips*100)
+                    ), 14, ' '
+                )
             );
-            System.out.println("┃    ─────────────────────────────────────────────────────────────    ┃");
         }
 
         stream = new FileInputStream("ui/results_tail.txt");

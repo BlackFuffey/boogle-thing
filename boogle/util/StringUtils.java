@@ -10,4 +10,11 @@ public class StringUtils {
         if (s.length() >= length) return s;
         return s + String.valueOf(pad).repeat(length - s.length());
     }
+
+    public static String truncateWithEllipsis(String s, int maxLength) {
+        if (s == null || s.length() <= maxLength) {
+            return s;
+        }
+        return s.substring(0, maxLength - 3) + "...";
+    }
 }

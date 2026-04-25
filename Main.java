@@ -19,17 +19,17 @@ public class Main {
             options.wordlistPath = "wordlist.txt";
             options.boardPath = null;
 
-            for (int i = 0; i < options.playerlist.size(); i++) {
-                Player player = options.playerlist.get(i);
-                if (player instanceof AIPlayer) {
-                    AIPlayer oldAI = (AIPlayer) player;
-                    AIPlayer newAI = new AIPlayer(oldAI.getName(), oldAI.getLevel());
-
-                    options.playerlist.set(i, newAI);
-                }
-            }
-
             for (;;) {
+                for (int i = 0; i < options.playerlist.size(); i++) {
+                    Player player = options.playerlist.get(i);
+                    if (player instanceof AIPlayer) {
+                        AIPlayer oldAI = (AIPlayer) player;
+                        AIPlayer newAI = new AIPlayer(oldAI.getName(), oldAI.getLevel());
+
+                        options.playerlist.set(i, newAI);
+                    }
+                }
+
                 Terminal.enterAltBuffer();
                 options = menu(options);
 
@@ -194,7 +194,7 @@ public class Main {
                     } break;
 
                     default: {
-                        System.out.printf("I don't understand '%s'.\n See the 'Commands' section on top for list of commands.\n", cmd[0]);
+                        System.out.printf("I don't understand '%s'.\nSee the 'Commands' section on top for list of commands.\n", cmd[0]);
                     } break;
                 }
 

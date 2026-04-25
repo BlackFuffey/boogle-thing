@@ -162,15 +162,15 @@ public class AIPlayer implements Player {
 
         // make a move according to the AI level
         switch(this.level) {
-            case PERFECT: 
-                return available.pop();
+            case PERFECT: return available.pop();
 
-            case DUMB:
-                return available.shift();
+            case DUMB: return available.shift();
 
             case SMART:
             case GOOD:
-            case NORMAL:
+            case NORMAL: {
+                if (available.size() == 0) break;
+
                 int half = available.size() / 2;
                 int target = random.nextInt(available.size() - half);
 
@@ -187,6 +187,7 @@ public class AIPlayer implements Player {
                         return move;
                     i++;
                 }
+            }
         }
 
         return null;
