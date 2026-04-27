@@ -2,6 +2,8 @@ package boogle;
 
 import java.util.*;
 
+import boogle.util.FastOrderedSet;
+
 public class Gameboard {
 
     private static final String[][] template = {
@@ -13,17 +15,13 @@ public class Gameboard {
     };
 
     public static class GameboardWalker {
-        final int x, y;
+        private int x, y;
 
         private Gameboard gb;
 
-        private HashSet<Integer> visited;
+        private FastOrderedSet<Integer> visited = new FastOrderedSet<>();
 
         public GameboardWalker(Gameboard board, int x, int y) {
-            this(board, x, y, new HashSet<>());
-        }
-
-        private GameboardWalker(Gameboard board, int x, int y, HashSet<Integer> visited) {
             this.gb = board;
 
             if (!isPosValid(x, y))
@@ -31,7 +29,6 @@ public class Gameboard {
 
             this.x = x;
             this.y = y;
-            this.visited = new HashSet<>(visited);
 
             this.visited.add(pair(x, y));
         }
@@ -45,7 +42,7 @@ public class Gameboard {
             LEFT,    /*center*/     RIGHT,
             DOWN_LEFT,  DOWN,       DOWN_RIGHT
         }
-        public GameboardWalker step(Direction dir) {
+        public boolean step(Direction dir) {
             int x, y;
 
             // new y position
@@ -80,21 +77,60 @@ public class Gameboard {
 
             // check position
             if (!isPosValid(x, y))
-                return null;
+                return false;
 
             // check if grid already visited
             if (visited.contains(pair(x ,y))) 
-                return null;
+                return false;
 
-            // all clear, return new walker
-            return new GameboardWalker(this.gb, x, y, this.visited);
+            // all clear, update state
+            this.x = x;
+            this.y = y;
+            this.visited.add(pair(x, y));
+
+            return true;
         }
 
-        /* pairing function, with base-N encoding.
+        public boolean backtrack() {
+            if (visited.size() <= 1)
+                return false;
+
+            visited.pop();
+
+            int[] cords = unpair(visited.get(visited.size() - 1));
+
+            this.x = cords[0];
+            this.y = cords[1];
+            
+            return true;
+        }
+
+        public String journey() {
+            StringBuilder builder = new StringBuilder(this.visited.size());
+
+            for (int encoded : this.visited) {
+                int[] cords = unpair(encoded);
+
+                builder.append(this.gb.board[cords[1]][cords[0]]);
+            }
+
+            return builder.toString();
+        }
+
+        /* pairing function & inverse, with base-N encoding.
          * calculate a unique integer from two given ints, considering order
+         * Formula: z = xN + y, where N is larger than max possible value of y
         */
         private int pair(int x, int y) {
-            return x * (gb.board.length + 1) + y;
+            return x * gb.board.length + y;
+        }
+
+        private int[] unpair(int pair) {
+            int N = gb.board.length;
+            return new int[]{
+                pair / N,   // x = floor(z/N). integer division already truncates correctly so we leave out the floor
+                pair % N    // y = z mod N
+            };
         }
 
         // check if position is in-bound
@@ -173,15 +209,15 @@ public class Gameboard {
         }
 
         for (GameboardWalker.Direction dir : GameboardWalker.Direction.values()) {
-            GameboardWalker next = walker.step(dir);
+            if (!walker.step(dir)) continue;
 
-            if (next == null) continue;
-
-            if (next.here() == word[index]) {
-                if (dfs(next, word, index + 1)) {
+            if (walker.here() == word[index]) {
+                if (dfs(walker, word, index + 1)) {
                     return true;
                 }
             }
+
+            walker.backtrack();
         }
 
         return false;

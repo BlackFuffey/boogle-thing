@@ -63,6 +63,25 @@ public class FastOrderedSet<T> implements Collection<T> {
         return true;
     }
 
+    public T get(int index) {
+        Node<T> at;
+        int size = map.size();
+
+        if (index < size / 2) {
+            at = this.head;
+            for (int i = 0; i < index; i++) {
+                at = at.next;
+            }
+        } else {
+            at = this.tail;
+            for (int i = size - 1; i > index; i--) {
+                at = at.prev;
+            }
+        }
+
+        return at.val;
+    }
+
     @Override
     public boolean remove(Object o) {
         Node<T> node = map.get(o);

@@ -101,8 +101,7 @@ public class AIPlayer implements Player {
 
                 HashSet<String> found = dfs(
                     new GameboardWalker(board, x, y),
-                    letterRoot, 
-                    new ArrayList<>(), new HashSet<>()
+                    letterRoot, new HashSet<>()
                 );
                 possibilities.addAll(found);
             }
@@ -113,26 +112,21 @@ public class AIPlayer implements Player {
         this.available.addAll(possibilities);
     }
     
-    private static HashSet<String> dfs(GameboardWalker walker, Tree<Character> trie, ArrayList<Character> path, HashSet<String> collected) {
-        path.add(walker.here());
-
-        // end node, add to list of found words
+    private static HashSet<String> dfs(GameboardWalker walker, Tree<Character> trie, HashSet<String> collected) {
         if (trie.getChild(null) != null)
-            collected.add(arrayListToString(path));
+            collected.add(walker.journey());
 
         for (GameboardWalker.Direction dir : GameboardWalker.Direction.values()) {
-            GameboardWalker next = walker.step(dir);
+            if (!walker.step(dir)) continue;
 
-            if (next == null) continue;
-
-            Tree<Character> nextTrie = trie.getChild(next.here());
+            Tree<Character> nextTrie = trie.getChild(walker.here());
             if (nextTrie != null) {
-                dfs(next, nextTrie, path, collected);
+                dfs(walker, nextTrie, collected);
             }
         }
 
         // backtrack this call
-        path.remove(path.size()-1);
+        walker.backtrack();
 
         return collected;
     }
