@@ -33,17 +33,16 @@ public class GameMaster {
 
     public void begin() throws IOException {
         HashMap<Player, Integer> scoreboard = new HashMap<>();
-        HashMap<Player, Integer> skipboard = new HashMap<>();
         HashSet<String> playedWords = new HashSet<>();
         ArrayList<String> playedWordList = new ArrayList<>();
 
         for (Player player : playerlist) {
             scoreboard.put(player, 0);
-            skipboard.put(player, 0);
         }
 
         int atPlayer = 0;
         int skipChain = 0;
+        int totalSkips = 0;
 
         for (;
             skipChain < playerlist.size() * 2;
@@ -89,7 +88,7 @@ public class GameMaster {
             if (move == null) {
                 System.out.println(currentPlayer.getName() + " skipped their turn!");
                 skipChain++;
-                skipboard.put(currentPlayer, skipboard.get(currentPlayer)+1);
+                totalSkips++;
                 continue;
             }
 
@@ -140,12 +139,12 @@ public class GameMaster {
         Terminal.clearScreen();
         Terminal.hideCursor();
 
+        int maxScore = AIPlayer.computeMaxScore(gameboard, dictionary);
+
         FileInputStream stream = new FileInputStream("ui/results_head.txt");
         stream.transferTo(System.out);
         stream.close();
         
-        int totalSkips = skipboard.values().stream().reduce(0, (a, b) -> a + b);
-
         System.out.println(
             "┃    Calories" +
             StringUtils.padStart(
@@ -162,15 +161,12 @@ public class GameMaster {
         for (Player player : playerlist) {
             String name = StringUtils.truncateWithEllipsis(player.getName(), 16);
             int score = scoreboard.get(player);
-            int skips = skipboard.get(player);
 
             System.out.println(
                 StringUtils.padEnd(String.format("┃    %s (%dc)", name, score), 30, ' ') +
                 StringUtils.padStart(
-                    String.format(
-                        "%d%%    ┃",
-                        (int)Math.round((float)skips/totalSkips*100)
-                    ), 14, ' '
+                    String.format("%d%%    ┃", (score*100)/maxScore),
+                    14, ' '
                 )
             );
         }

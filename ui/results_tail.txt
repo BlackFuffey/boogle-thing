@@ -2,8 +2,8 @@
 ┃     ==== Press enter to continue ====    ┃
 ┠──────────────────────────────────────────┨
 ┃ * The % Daily Value (DV) tells you how   ┃
-┃  much score every player have earned     ┃
-┃  during the game. 10 calories is added   ┃
-┃  every time someone skips. 0 calories a  ┃
-┃  day is used for general boogle advice.  ┃
+┃ much a player has earned as a percent of ┃
+┃ maximum earnable score. 10 calories is   ┃
+┃ added on every skip. 0 calories a day is ┃
+┃ used for general boogle advice.          ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛

@@ -14,16 +14,12 @@ public class Gameboard {
         { "AEEEEM", "CCNSTW", "DHHLOR", "ENSSSU", "OOOTTU" },
     };
 
-    public static class GameboardWalker {
+    public class GameboardWalker {
         private int x, y;
-
-        private Gameboard gb;
 
         private FastOrderedSet<Integer> visited = new FastOrderedSet<>();
 
-        public GameboardWalker(Gameboard board, int x, int y) {
-            this.gb = board;
-
+        public GameboardWalker(int x, int y) {
             if (!isPosValid(x, y))
                 throw new IllegalArgumentException("GameboardWalker got invalid position ("+x+", "+y+")");
 
@@ -34,7 +30,7 @@ public class Gameboard {
         }
 
         public char here() {
-            return gb.board[y][x];
+            return board[y][x];
         }
 
         public enum Direction {
@@ -111,7 +107,7 @@ public class Gameboard {
             for (int encoded : this.visited) {
                 int[] cords = unpair(encoded);
 
-                builder.append(this.gb.board[cords[1]][cords[0]]);
+                builder.append(board[cords[1]][cords[0]]);
             }
 
             return builder.toString();
@@ -122,11 +118,11 @@ public class Gameboard {
          * Formula: z = xN + y, where N is larger than max possible value of y
         */
         private int pair(int x, int y) {
-            return x * gb.board.length + y;
+            return x * board.length + y;
         }
 
         private int[] unpair(int pair) {
-            int N = gb.board.length;
+            int N = board.length;
             return new int[]{
                 pair / N,   // x = floor(z/N). integer division already truncates correctly so we leave out the floor
                 pair % N    // y = z mod N
@@ -135,8 +131,8 @@ public class Gameboard {
 
         // check if position is in-bound
         private boolean isPosValid(int x, int y) {
-            return (y < gb.board.length && y >= 0) &&
-                   (x < gb.board[y].length && x >= 0);
+            return (y < board.length && y >= 0) &&
+                   (x < board[y].length && x >= 0);
         }
     }
     
@@ -195,7 +191,7 @@ public class Gameboard {
             return false;
 
         for (int[] loc : locs) {
-            if (dfs(new GameboardWalker(this, loc[0], loc[1]), wordChars, 1))
+            if (dfs(this.new GameboardWalker(loc[0], loc[1]), wordChars, 1))
                 return true;
         }
 

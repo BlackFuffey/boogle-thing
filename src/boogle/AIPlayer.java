@@ -100,7 +100,7 @@ public class AIPlayer implements Player {
                 if (letterRoot == null) continue;
 
                 HashSet<String> found = dfs(
-                    new GameboardWalker(board, x, y),
+                    board.new GameboardWalker(x, y),
                     letterRoot, new HashSet<>()
                 );
                 possibilities.addAll(found);
@@ -123,22 +123,11 @@ public class AIPlayer implements Player {
             if (nextTrie != null) {
                 dfs(walker, nextTrie, collected);
             }
-        }
 
-        // backtrack this call
-        walker.backtrack();
+            walker.backtrack();
+        }
 
         return collected;
-    }
-
-    private static String arrayListToString(ArrayList<Character> arr) {
-        StringBuilder builder = new StringBuilder(arr.size());
-
-        for (char c : arr) {
-            builder.append(c);
-        }
-
-        return builder.toString();
     }
 
     public String nextMove(Gameboard board, Set<String> dictionary, ArrayList<String> playedWords) {
@@ -187,6 +176,20 @@ public class AIPlayer implements Player {
         return null;
     }
 
+    public static int computeMaxScore(Gameboard board, Set<String> dictionary) {
+        AIPlayer player = new AIPlayer("4chan.org", Level.PERFECT);
+        
+        player.initialize(board, dictionary);
+        System.out.println(player.available.size());
+        new Scanner(System.in).nextLine();
 
+        int result = 0;
+
+        for (String move : player.available) {
+            result += move.length();
+        }
+        
+        return result;
+    }
 
 }
