@@ -177,11 +177,9 @@ public class AIPlayer implements Player {
     }
 
     public static int computeMaxScore(Gameboard board, Set<String> dictionary) {
-        AIPlayer player = new AIPlayer("4chan.org", Level.PERFECT);
+        AIPlayer player = new AIPlayer("4chan.org", Level.PERFECT);     // we love 4chan
         
         player.initialize(board, dictionary);
-        System.out.println(player.available.size());
-        new Scanner(System.in).nextLine();
 
         int result = 0;
 

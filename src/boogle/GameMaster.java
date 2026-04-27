@@ -44,6 +44,8 @@ public class GameMaster {
         int skipChain = 0;
         int totalSkips = 0;
 
+        int maxScore = AIPlayer.computeMaxScore(gameboard, dictionary);
+
         for (;
             skipChain < playerlist.size() * 2;
             atPlayer = (atPlayer+1) % playerlist.size()
@@ -138,8 +140,6 @@ public class GameMaster {
 
         Terminal.clearScreen();
         Terminal.hideCursor();
-
-        int maxScore = AIPlayer.computeMaxScore(gameboard, dictionary);
 
         FileInputStream stream = new FileInputStream("ui/results_head.txt");
         stream.transferTo(System.out);
