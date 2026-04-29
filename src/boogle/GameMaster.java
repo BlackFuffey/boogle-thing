@@ -64,6 +64,10 @@ public class GameMaster {
             }
 
             System.out.println("\n\n");
+            System.out.println("==== Scores ====");
+            for(Player player: playerlist){
+                System.out.println(player.getName()+"\t"+scoreboard.get(player));
+            }
 
             System.out.println("==== Played Words ====");
             int lineLength = 0;
