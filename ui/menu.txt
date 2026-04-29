@@ -13,7 +13,7 @@ help			--	Tutorial
 [win_score] Winning Score: %s
 [min_word_length] Minimum Word Length: %s
 [wordlist] Wordlist File: %s
-[board] Gameboard File: %s
+[board] Gameboard: %s
 
 ==== Players ====
 

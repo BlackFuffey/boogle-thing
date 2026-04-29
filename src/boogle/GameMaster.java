@@ -165,7 +165,7 @@ public class GameMaster {
             System.out.println(
                 StringUtils.padEnd(String.format("┃    %s (%dc)", name, score), 30, ' ') +
                 StringUtils.padStart(
-                    String.format("%d%%    ┃", (score*100)/maxScore),
+                    String.format("%d%%    ┃", (score*100)/(maxScore==0 ? Integer.MAX_VALUE : maxScore)),
                     14, ' '
                 )
             );

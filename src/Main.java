@@ -17,7 +17,7 @@ public class Main {
             options.winScore = 0;
             options.minWordLength = 0;
             options.wordlistPath = "wordlist.txt";
-            options.boardPath = null;
+            options.customBoard = null;
 
             for (;;) {
                 for (int i = 0; i < options.playerlist.size(); i++) {
@@ -40,13 +40,16 @@ public class Main {
 
                 Scanner wordlist = new Scanner(new File(options.wordlistPath));
                 while (wordlist.hasNext()) {
-                    dictionary.add(wordlist.nextLine().toUpperCase());
+                    String word = wordlist.nextLine();
+
+                    if (word.length() < options.minWordLength)
+                        continue;
+
+                    dictionary.add(word.toUpperCase());
                 }
                 wordlist.close();
 
-                // TODO: implement custom board
-
-                GameMaster gm = new GameMaster(options.playerlist, dictionary, null, options.minWordLength, options.winScore, console);
+                GameMaster gm = new GameMaster(options.playerlist, dictionary, options.customBoard, options.minWordLength, options.winScore, console);
                 gm.begin();
             }
         } finally {
@@ -58,7 +61,7 @@ public class Main {
     private static class GameOptions {
         ArrayList<Player> playerlist;
         String wordlistPath;
-        String boardPath;
+        char[][] customBoard;
         int minWordLength;
         int winScore;
     }
@@ -275,20 +278,23 @@ public class Main {
                 }
             break;
 
-            case "board":
-                try { 
-                    if (value.isEmpty())
-                        options.boardPath = null;
-                    else {
-                        (new FileReader(value)).close();
-                        options.boardPath = value;
-                    }
-                } catch (IOException e) {
-                    System.out.println("Unable to use file: "+e.getMessage());
-                    System.out.println("Leave path empty if you wish for board to be randomly generated");
-                    return false;
+            case "board": {
+                if (value.isEmpty()) {
+                    options.customBoard = null;
+                    break;
                 }
-            break;
+
+                char[][] customBoard = loadGameboardFile(value);
+
+                if (customBoard != null) {
+                    options.customBoard = customBoard;
+                    break;
+                }
+
+                System.out.println("Unable to use the specified file");
+                System.out.println("Leave path empty if you wish for board to be randomly generated");
+                return false;
+            }
 
             default:
                 System.out.println("I don't know about that option");
@@ -319,7 +325,7 @@ public class Main {
             options.winScore == 0 ? "Endless" : ""+options.winScore,
             options.minWordLength == 0 ? "No minimum word length limit" : ""+options.minWordLength,
             options.wordlistPath,
-            options.boardPath == null ? "Generated" : options.boardPath
+            options.customBoard == null ? "Generated" : "Custom"
         );
 
         int i = 0;
@@ -336,6 +342,50 @@ public class Main {
 
         if (i == 0) {
             System.out.println("(No player, use 'add' command to add a player)");
+        }
+    }
+
+    static char[][] loadGameboardFile(String path) {
+        try {
+            List<String> lines = Files.readAllLines(Paths.get(path));
+
+            char[][] result = new char[lines.size()][];
+
+            int width = -1;
+            for (int i = 0; i < lines.size(); i++) {
+                String[] chars = lines.get(i).split("\\s+");
+                
+                if (width == -1)
+                    width = chars.length;
+                else if (width != chars.length)
+                    throw new IOException(
+                        String.format(
+                            "Malformed gameboard file: row %d is not of the expected length %d (got %d instead)",
+                            i+1, width, chars.length
+                        )
+                    );
+
+                char[] row = new char[chars.length];
+
+                for (int j = 0; j < chars.length; j++) {
+                    if (chars[j].length() != 1)
+                        throw new IOException(
+                            String.format(
+                                "Malformed gameboard file: found multiple characters in one grid at (%d, %d)",
+                                i+1, j+1
+                            )
+                        );
+
+                    row[j] = Character.toUpperCase(chars[j].charAt(0));
+                }
+
+                result[i] = row;
+            }
+
+            return result;
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+            return null;
         }
     }
 
