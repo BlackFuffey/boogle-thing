@@ -63,11 +63,13 @@ public class GameMaster {
                 }
             }
 
-            System.out.println("\n\n");
+            System.out.println('\n');
             System.out.println("==== Scores ====");
             for(Player player: playerlist){
                 System.out.println(player.getName()+"\t"+scoreboard.get(player));
             }
+
+            System.out.println('\n');
 
             System.out.println("==== Played Words ====");
             int lineLength = 0;
@@ -82,7 +84,7 @@ public class GameMaster {
             if (playedWordList.size() == 0) 
                 System.out.println("(No played words yet)");
 
-            System.out.println("\n\n");
+            System.out.println('\n');
 
             System.out.printf("It's %s's turn\n\n", currentPlayer.getName());
 
