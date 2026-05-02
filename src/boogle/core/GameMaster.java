@@ -1,9 +1,10 @@
-package boogle;
+package boogle.core;
 
 import java.io.*;
 import java.util.*;
 
 import boogle.util.*;
+import boogle.player.AIPlayer;
 
 public class GameMaster {
 
@@ -48,7 +49,6 @@ public class GameMaster {
 
         for (;
             skipChain < playerlist.size() * 2;
-            atPlayer = (atPlayer+1) % playerlist.size()
         ) try {
             Terminal.clearScreen();
             Terminal.showCursor();
@@ -88,7 +88,7 @@ public class GameMaster {
 
             System.out.printf("It's %s's turn\n\n", currentPlayer.getName());
 
-            String move = currentPlayer.nextMove(gameboard, dictionary, playedWordList);
+            String move = currentPlayer.nextMove(gameboard, dictionary);
 
             Terminal.hideCursor();
             System.out.println();
@@ -136,6 +136,11 @@ public class GameMaster {
             System.out.printf("%s played the word '%s' and gained +%d score!\n", currentPlayer.getName(), move, scoreGained);
 
             scoreboard.put(currentPlayer, scoreboard.get(currentPlayer)+scoreGained);
+
+            for (Player player : playerlist) {
+                atPlayer = (atPlayer+1) % playerlist.size();
+                player.updateGameState(move, playerlist.get(atPlayer).getName());
+            }
 
             if (winScore > 0 && scoreboard.get(currentPlayer) >= winScore)
                 break;

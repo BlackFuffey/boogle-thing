@@ -8,7 +8,7 @@ import java.util.*;
  * so heres our own version 
  * (i definately wasnt too lazy to code this myself and used an llm)
 */
-public class FastOrderedSet<T> implements Collection<T> {
+public class FastOrderedSet<T> implements Set<T> {
 
     private static class Node<T> {
         T val;

@@ -1,6 +1,7 @@
-package boogle;
+package boogle.player;
 
 import java.util.*;
+import boogle.core.*;
 
 public class ConsolePlayer implements Player {
     private String name;

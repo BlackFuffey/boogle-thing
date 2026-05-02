@@ -1,8 +1,9 @@
-package boogle;
+package boogle.player;
 
 import java.util.*;
 
-import boogle.Gameboard.GameboardWalker;
+import boogle.core.*;
+import boogle.core.Gameboard.GameboardWalker;
 import boogle.util.FastOrderedSet;
 import boogle.util.Tree;
 
@@ -130,24 +131,18 @@ public class AIPlayer implements Player {
         return collected;
     }
 
-    public String nextMove(Gameboard board, Set<String> dictionary, ArrayList<String> playedWords) {
+    public String nextMove(Gameboard board, Set<String> dictionary) {
         System.out.println(this.getName() + " is thinking...");
 
         if (this.available == null) {
             initialize(board, dictionary);
         }
 
-        // update available move list
-        for (int i = lastPlayedUpdate; i < playedWords.size(); i++) {
-            available.remove(playedWords.get(i));
-        }
-        lastPlayedUpdate = Math.max(playedWords.size()-1, 0);
-
         // make a move according to the AI level
         switch(this.level) {
-            case PERFECT: return available.pop();
+            case PERFECT: return available.get(0);
 
-            case DUMB: return available.shift();
+            case DUMB: return available.get(available.size()-1);
 
             case SMART:
             case GOOD:
@@ -174,6 +169,10 @@ public class AIPlayer implements Player {
         }
 
         return null;
+    }
+
+    public void updateGameState(String wordPlayed, String nextMove) {
+        available.remove(wordPlayed);
     }
 
     public static int computeMaxScore(Gameboard board, Set<String> dictionary) {

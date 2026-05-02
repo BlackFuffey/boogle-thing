@@ -1,4 +1,4 @@
-package boogle;
+package boogle.core;
 
 import java.util.*;
 
@@ -136,7 +136,10 @@ public class Gameboard {
         }
     }
     
-    char[][] board;
+    // yes i know this is encapsulation leak,
+    // but its for convinience and performance sake
+    public char[][] board;
+
     private HashMap<Character, ArrayList<int[]>> charLocs;
 
     public Gameboard() {

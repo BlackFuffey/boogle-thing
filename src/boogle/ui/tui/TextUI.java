@@ -1,72 +1,25 @@
-import java.util.*;
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+package boogle.ui;
 
 import boogle.core.*;
-import boogle.player.*;
+import boogle.core.Launcher.GameOptions;
 import boogle.util.Terminal;
 
-public class Main {
+import java.util.*;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+
+public class TextUI implements GameUI {
     
-    static final Scanner console = new Scanner(System.in);
-
-    public static void main(String[] args) throws FileNotFoundException, IOException {
-        try {
-            GameOptions options = new GameOptions();
-            options.playerlist = new ArrayList<>();
-            options.winScore = 0;
-            options.minWordLength = 0;
-            options.wordlistPath = "wordlist.txt";
-            options.customBoard = null;
-
-            for (;;) {
-                for (int i = 0; i < options.playerlist.size(); i++) {
-                    Player player = options.playerlist.get(i);
-                    if (player instanceof AIPlayer) {
-                        AIPlayer oldAI = (AIPlayer) player;
-                        AIPlayer newAI = new AIPlayer(oldAI.getName(), oldAI.getLevel());
-
-                        options.playerlist.set(i, newAI);
-                    }
-                }
-
-                Terminal.enterAltBuffer();
-                options = menu(options);
-
-                if (options == null)
-                return;
-
-                HashSet<String> dictionary = new HashSet<>();
-
-                Scanner wordlist = new Scanner(new File(options.wordlistPath));
-                while (wordlist.hasNext()) {
-                    String word = wordlist.nextLine();
-
-                    if (word.length() < options.minWordLength)
-                        continue;
-
-                    dictionary.add(word.toUpperCase());
-                }
-                wordlist.close();
-
-                GameMaster gm = new GameMaster(options.playerlist, dictionary, options.customBoard, options.minWordLength, options.winScore, console);
-                gm.begin();
-            }
-        } finally {
-            Terminal.exitAltBuffer();
-            Terminal.showCursor();
-        }
+    public void initialize() {
+        Terminal.enterAltBuffer();
     }
 
-    private static class GameOptions {
-        ArrayList<Player> playerlist;
-        String wordlistPath;
-        char[][] customBoard;
-        int minWordLength;
-        int winScore;
+    public void cleanup() {
+        Terminal.exitAltBuffer();
+        Terminal.showCursor();
     }
-    static GameOptions menu(GameOptions options) throws FileNotFoundException, IOException{
+
+    public GameOptions lobby(GameOptions options) {
         for (;;) {
             Terminal.hideCursor();
             Terminal.clearScreen();
@@ -115,7 +68,7 @@ public class Main {
                         Player target = resolvePlayerNum(options.playerlist, args[0]);
 
                         if (target == null) {
-                            System.out.printf("Invalid player number '%s'\n", args[0]);
+                         System.out.printf("Invalid player number '%s'\n", args[0]);
                             break;
                         }
 
@@ -305,23 +258,28 @@ public class Main {
         return true;
     }
 
-    static void printTutorial() throws IOException {
-        FileInputStream logo = new FileInputStream("ui/tutorial.txt");
-        logo.transferTo(System.out);
-        logo.close();
+    private static void printTutorial() {
+        InputStream asset = TextUI.class.getClassLoader().getResourceAsStream("asset/tutorial.txt");
+        asset.transferTo(System.out);
+        asset.close();
     }
 
-    static void printTitleScreen() throws FileNotFoundException, IOException {
-        FileInputStream logo = new FileInputStream("ui/logo.txt");
+    private static void printTitleScreen() {
+        InputStream logo = TextUI.class.getClassLoader().getResourceAsStream("asset/logo.txt");
         logo.transferTo(System.out);
         logo.close();
 
         System.out.println("\n\t\t\t-- Press enter to continue --\n");
     }
 
-    static void printMenuScreen(GameOptions options) throws IOException{
+    private static void printMenuScreen(GameOptions options) {
+        String template = new String(
+            TextUI.class.getClassLoader().getResourceAsStream("asset/menu.txt").readAllBytes(),
+            StandardCharsets.UTF_8
+        );
+
         System.out.printf(
-            new String(Files.readAllBytes(Paths.get("ui/menu.txt"))),
+            template,
             options.winScore == 0 ? "Endless" : ""+options.winScore,
             options.minWordLength == 0 ? "No minimum word length limit" : ""+options.minWordLength,
             options.wordlistPath,
@@ -344,8 +302,4 @@ public class Main {
             System.out.println("(No player, use 'add' command to add a player)");
         }
     }
-
-
 }
-
-
