@@ -2,8 +2,10 @@ package boogle.core;
 
 import java.io.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import boogle.util.*;
+import boogle.core.GameUI.TurnStatus;
 import boogle.player.AIPlayer;
 
 public class GameMaster {
@@ -11,13 +13,12 @@ public class GameMaster {
     private List<Player> playerlist;
     private Set<String> dictionary;
     private Gameboard gameboard;
+    private GameUI ui;
 
     private int minWordLen;
     private int winScore;
 
-    private Scanner console;
-
-    public GameMaster(List<Player> playerlist, Set<String> dictionary, char[][] board, int minWordLen, int winScore) {
+    public GameMaster(List<Player> playerlist, Set<String> dictionary, char[][] board, int minWordLen, int winScore, GameUI ui) {
         this.playerlist = playerlist;
         this.dictionary = dictionary;
 
@@ -29,7 +30,7 @@ public class GameMaster {
         this.minWordLen = minWordLen;
         this.winScore = winScore;
 
-        this.console = console;
+        this.ui = ui;
     }
 
     public void begin() throws IOException {
@@ -50,51 +51,27 @@ public class GameMaster {
         for (;
             skipChain < playerlist.size() * 2;
         ) try {
-            Terminal.clearScreen();
-            Terminal.showCursor();
-
             Player currentPlayer = playerlist.get(atPlayer);
 
-            char[][] board = gameboard.board;
-            for (char[] row : board) {
-                System.out.println('\n');
-                for (char letter : row) {
-                    System.out.print("   "+letter);
-                }
+            List<Map.Entry<String, Integer>> leaderboard = new ArrayList<>();
+
+            for (Map.Entry<Player, Integer> entry : scoreboard.entrySet()) {
+                leaderboard.add(Map.entry(entry.getKey().getName(), entry.getValue()));
             }
 
-            System.out.println('\n');
-            System.out.println("==== Scores ====");
-            for(Player player: playerlist){
-                System.out.println(player.getName()+"\t"+scoreboard.get(player));
-            }
-
-            System.out.println('\n');
-
-            System.out.println("==== Played Words ====");
-            int lineLength = 0;
-            for (String word : playedWordList) {
-                if (lineLength / 60 >= 1) {
-                    System.out.println();
-                    lineLength = 0;
-                }
-                System.out.print(word+" ");
-                lineLength += word.length()+1;
-            }
-            if (playedWordList.size() == 0) 
-                System.out.println("(No played words yet)");
-
-            System.out.println('\n');
-
-            System.out.printf("It's %s's turn\n\n", currentPlayer.getName());
+            ui.startTurn(gameboard, leaderboard, playedWordList, currentPlayer.getName());
 
             String move = currentPlayer.nextMove(gameboard, dictionary);
 
-            Terminal.hideCursor();
-            System.out.println();
+            // yes ik magic string is bad. blame java for making struct defs so verbose
+            if (move != null && move.equals("__defer")) {
+                move = ui.active();
+            } else {
+                ui.passive();
+            }
 
             if (move == null) {
-                System.out.println(currentPlayer.getName() + " skipped their turn!");
+                ui.endTurn(TurnStatus.SKIPPED, move, 0, minWordLen);
                 skipChain++;
                 totalSkips++;
                 continue;
@@ -103,25 +80,25 @@ public class GameMaster {
             move = move.toUpperCase();
 
             if (move.length() < minWordLen) {
-                System.out.printf("Word too short! Minimal word length is %d\n", minWordLen);
+                ui.endTurn(TurnStatus.TOO_SHORT, move, 0, minWordLen);
                 atPlayer--;
                 continue;
             }
 
             if (playedWords.contains(move)) {
-                System.out.println("This word was already played! Try a different one.");
+                ui.endTurn(TurnStatus.DUPLICATE, move, 0, minWordLen);
                 atPlayer--;
                 continue;
             }
 
             if (!dictionary.contains(move)) {
-                System.out.println("Word not in wordlist! Try a different one.");
+                ui.endTurn(TurnStatus.NOT_IN_DICT, move, 0, minWordLen);
                 atPlayer--;
                 continue;
             }
 
             if (!gameboard.wordExists(move)) {
-                System.out.println("Word does not exist on board! Try a different one");
+                ui.endTurn(TurnStatus.NOT_ON_BOARD, move, 0, minWordLen);
                 atPlayer--;
                 continue;
             }
@@ -133,7 +110,7 @@ public class GameMaster {
             playedWordList.add(move);
 
             int scoreGained = move.length();
-            System.out.printf("%s played the word '%s' and gained +%d score!\n", currentPlayer.getName(), move, scoreGained);
+            ui.endTurn(TurnStatus.OK, move, scoreGained, minWordLen);
 
             scoreboard.put(currentPlayer, scoreboard.get(currentPlayer)+scoreGained);
 
@@ -145,8 +122,7 @@ public class GameMaster {
             if (winScore > 0 && scoreboard.get(currentPlayer) >= winScore)
                 break;
         } finally {
-            System.out.println("\n==== Press enter to continue ====");
-            console.nextLine();
+            ui.confirm();
         }
 
         Terminal.clearScreen();

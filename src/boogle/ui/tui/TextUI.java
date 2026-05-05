@@ -309,7 +309,88 @@ public class TextUI implements GameUI {
         }
     }
 
-    public void newTurn()
+    private String currentPlayerName;
+
+    public void startTurn(Gameboard gameboard, List<Map.Entry<String, Integer>> leaderboard, ArrayList<String> playedWords, String currentPlayerName) {
+        Terminal.clearScreen();
+        Terminal.showCursor();
+
+        char[][] board = gameboard.board;
+        for (char[] row : board) {
+            System.out.println('\n');
+            for (char letter : row) {
+                System.out.print("   "+letter);
+            }
+        }
+
+        System.out.println('\n');
+        System.out.println("==== Scores ====");
+        for (Map.Entry<String, Integer> player: leaderboard){
+            System.out.println(player.getKey()+"\t"+player.getValue());
+        }
+
+        System.out.println('\n');
+
+        System.out.println("==== Played Words ====");
+        int lineLength = 0;
+        for (String word : playedWords) {
+            if (lineLength / 60 >= 1) {
+                System.out.println();
+                lineLength = 0;
+            }
+            System.out.print(word+" ");
+            lineLength += word.length()+1;
+        }
+        if (playedWords.size() == 0) 
+        System.out.println("(No played words yet)");
+
+        System.out.println('\n');
+
+        System.out.printf("It's %s's turn\n\n", currentPlayerName);
+        this.currentPlayerName = currentPlayerName;
+    }
+
+    public String active() {
+        System.out.println("\nEnter your word, or '-skip' to skip this turn");
+        System.out.print(currentPlayerName + ", make your move: ");
+    
+        String input = console.nextLine();
+
+        if (input.equalsIgnoreCase(
+        "-skip")) 
+            return null;
+
+        return input;
+    }
+
+    public void passive() {
+        System.out.printf("\n%s is thinking...", currentPlayerName);
+    }
+
+    public void endTurn(TurnStatus status, String move, int scoreGained, int minWordLength) {
+        switch (status) {
+            case OK:
+                System.out.printf("%s played the word '%s' and gained +%d score!\n", currentPlayerName, move, scoreGained);
+            break;
+            case SKIPPED:
+                System.out.println(currentPlayerName+" skipped their turn!");
+            break;
+            case TOO_SHORT:
+                System.out.printf("Word too short! Minimal word length is %d\n", minWordLength);
+            break;
+            case DUPLICATE:
+                System.out.println("This word was already played! Try a different one.");
+            break;
+            case NOT_IN_DICT:
+                System.out.println("Word not in wordlist! Try a different one.");
+            break;
+            case NOT_ON_BOARD:
+                System.out.println("Word does not exist on board! Try a different one");
+            break;
+        }
+
+        System.out.println("\n==== Press enter to continue ====");
+    }
 
     public void confirm() {
         console.nextLine();
