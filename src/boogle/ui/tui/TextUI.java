@@ -1,7 +1,8 @@
-package boogle.ui;
+package boogle.ui.tui;
 
 import boogle.core.*;
 import boogle.core.Launcher.GameOptions;
+import boogle.player.*;
 import boogle.util.Terminal;
 
 import java.util.*;
@@ -10,17 +11,20 @@ import java.nio.charset.StandardCharsets;
 
 public class TextUI implements GameUI {
     
-    public void initialize() {
+    private Scanner console = new Scanner(System.in);
+
+    public TextUI() {
         Terminal.enterAltBuffer();
     }
-
-    public void cleanup() {
+    
+    @Override
+    public void close() {
         Terminal.exitAltBuffer();
         Terminal.showCursor();
     }
 
-    public GameOptions lobby(GameOptions options) {
-        for (;;) {
+    public boolean lobby(GameOptions options) {
+        try { for (;;) {
             Terminal.hideCursor();
             Terminal.clearScreen();
             printTitleScreen();
@@ -138,11 +142,11 @@ public class TextUI implements GameUI {
 
                     case "start": {
                         if (options.playerlist.size() != 0)
-                            return options;
+                            return true;
                         System.out.println("Cannot start game with 0 players!");
                     } break;
 
-                    case "quit": { return null; }
+                    case "quit": { return false; }
 
                     case "help": {
                         Terminal.clearScreen();
@@ -158,8 +162,10 @@ public class TextUI implements GameUI {
                 console.nextLine();
             }
 
+        } } catch (IOException e) {
+            e.printStackTrace();
+            return false;
         }
-        
     }
 
     static <T> T[] padArray(T[] arr, int padLength, T padWith) {
@@ -237,7 +243,7 @@ public class TextUI implements GameUI {
                     break;
                 }
 
-                char[][] customBoard = loadGameboardFile(value);
+                char[][] customBoard = Launcher.loadGameboardFile(value);
 
                 if (customBoard != null) {
                     options.customBoard = customBoard;
@@ -258,13 +264,13 @@ public class TextUI implements GameUI {
         return true;
     }
 
-    private static void printTutorial() {
+    private static void printTutorial() throws IOException {
         InputStream asset = TextUI.class.getClassLoader().getResourceAsStream("asset/tutorial.txt");
         asset.transferTo(System.out);
         asset.close();
     }
 
-    private static void printTitleScreen() {
+    private static void printTitleScreen() throws IOException {
         InputStream logo = TextUI.class.getClassLoader().getResourceAsStream("asset/logo.txt");
         logo.transferTo(System.out);
         logo.close();
@@ -272,7 +278,7 @@ public class TextUI implements GameUI {
         System.out.println("\n\t\t\t-- Press enter to continue --\n");
     }
 
-    private static void printMenuScreen(GameOptions options) {
+    private static void printMenuScreen(GameOptions options) throws IOException {
         String template = new String(
             TextUI.class.getClassLoader().getResourceAsStream("asset/menu.txt").readAllBytes(),
             StandardCharsets.UTF_8
@@ -301,5 +307,11 @@ public class TextUI implements GameUI {
         if (i == 0) {
             System.out.println("(No player, use 'add' command to add a player)");
         }
+    }
+
+    public void newTurn()
+
+    public void confirm() {
+        console.nextLine();
     }
 }

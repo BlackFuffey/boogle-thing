@@ -4,13 +4,15 @@ import java.util.*;
 import java.nio.file.*;
 import java.io.*;
 
+import boogle.player.*;
+
 public class Launcher {
     public static class GameOptions {
-        ArrayList<Player> playerlist;
-        String wordlistPath;
-        char[][] customBoard;
-        int minWordLength;
-        int winScore;
+        public ArrayList<Player> playerlist;
+        public String wordlistPath;
+        public char[][] customBoard;
+        public int minWordLength;
+        public int winScore;
     }
 
     private GameUI ui;
@@ -19,8 +21,40 @@ public class Launcher {
         this.ui = ui;
     }
 
-    public void start() {
-        GameOptions options = this.ui.lobby();
+    public void start(GameOptions options) {
+        for (;;) { try {
+            for (int i = 0; i < options.playerlist.size(); i++) {
+                Player player = options.playerlist.get(i);
+                if (player instanceof AIPlayer) {
+                    AIPlayer oldAI = (AIPlayer) player;
+                    AIPlayer newAI = new AIPlayer(oldAI.getName(), oldAI.getLevel());
+
+                    options.playerlist.set(i, newAI);
+                }
+            }
+
+            if (!this.ui.lobby(options))
+                return;
+
+            HashSet<String> dictionary = new HashSet<>();
+
+            Scanner wordlist = new Scanner(new File(options.wordlistPath));
+            while (wordlist.hasNext()) {
+                String word = wordlist.nextLine();
+
+                if (word.length() < options.minWordLength)
+                continue;
+
+                dictionary.add(word.toUpperCase());
+            }
+            wordlist.close();
+
+            GameMaster gm = new GameMaster(options.playerlist, dictionary, options.customBoard, options.minWordLength, options.winScore);
+            gm.begin();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        } }
     }
 
     public static char[][] loadGameboardFile(String path) {

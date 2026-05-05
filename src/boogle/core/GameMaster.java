@@ -17,7 +17,7 @@ public class GameMaster {
 
     private Scanner console;
 
-    public GameMaster(List<Player> playerlist, Set<String> dictionary, char[][] board, int minWordLen, int winScore, Scanner console) {
+    public GameMaster(List<Player> playerlist, Set<String> dictionary, char[][] board, int minWordLen, int winScore) {
         this.playerlist = playerlist;
         this.dictionary = dictionary;
 
