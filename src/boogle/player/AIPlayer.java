@@ -10,11 +10,11 @@ import boogle.util.Tree;
 public class AIPlayer implements Player {
 
     public enum Level {
-        PERFECT(5),   // always makes best move
-        SMART(4),     // randomly select from better half
-        GOOD(3),      // randomly select from all possibilities
-        NORMAL(2),    // randomly select from worse half
-        DUMB(1);      // always make worst move
+        PERFECT(5),   // always makes best move, keep 100% of moves
+        SMART(4),     // randomly select from better half, keep 70%-90% of moves
+        GOOD(3),      // randomly select from all possibilities, keep 30%-50% of moves
+        NORMAL(2),    // randomly select from worse half, keep 10%-20% of moves
+        DUMB(1);      // always make worst move, keep 5% of moves
 
         private final int value;
 
@@ -42,11 +42,13 @@ public class AIPlayer implements Player {
 
     private FastOrderedSet<String> available = null;
 
+    private Gameboard board;
+    private Set<String> dictionary;
+
     private Random random = new Random();
 
     private String name;
 
-    private int lastPlayedUpdate = 0;
 
     public void setName(String name) {
         this.name = name;
@@ -61,7 +63,11 @@ public class AIPlayer implements Player {
         this.name = name;
     }
 
-    private void initialize(Gameboard board, Set<String> dictionary) {
+    private void initialize() {
+        if (board == null || dictionary == null) {
+            throw new IllegalStateException("Cannot initialize without game states");
+        }
+
         this.available = new FastOrderedSet<>();
 
         Tree<Character> trieRoot = new Tree<>(null);
@@ -131,12 +137,9 @@ public class AIPlayer implements Player {
         return collected;
     }
 
-    public String nextMove(Gameboard board, Set<String> dictionary) {
-        System.out.println(this.getName() + " is thinking...");
-
-        if (this.available == null) {
-            initialize(board, dictionary);
-        }
+    public String nextMove() {
+        if (this.available == null)
+            initialize();
 
         // make a move according to the AI level
         switch(this.level) {
@@ -171,14 +174,23 @@ public class AIPlayer implements Player {
         return null;
     }
 
+    public void setGame(Gameboard board, Set<String> dictionary) {
+        this.board = board;
+        this.dictionary = dictionary;
+    }
+
     public void updateGameState(String wordPlayed, String nextMove) {
+        if (available == null)
+            initialize();
+
         available.remove(wordPlayed);
     }
 
     public static int computeMaxScore(Gameboard board, Set<String> dictionary) {
         AIPlayer player = new AIPlayer("4chan.org", Level.PERFECT);     // we love 4chan
         
-        player.initialize(board, dictionary);
+        player.setGame(board, dictionary);
+        player.initialize();
 
         int result = 0;
 

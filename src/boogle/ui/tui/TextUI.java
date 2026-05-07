@@ -3,6 +3,7 @@ package boogle.ui.tui;
 import boogle.core.*;
 import boogle.core.Launcher.GameOptions;
 import boogle.player.*;
+import boogle.util.StringUtils;
 import boogle.util.Terminal;
 
 import java.util.*;
@@ -52,7 +53,7 @@ public class TextUI implements GameUI {
                         String[] args = padArray(cmd[1].split(" ", 2), 2, "");
 
                         if (args[0].toLowerCase().equals("human")) {
-                            options.playerlist.add(new ConsolePlayer(args[1], console));
+                            options.playerlist.add(new UIPlayer(args[1]));
                             System.out.printf("Human player '%s' is now player #%d", args[1], options.playerlist.size());
                             break;
                         }
@@ -265,13 +266,13 @@ public class TextUI implements GameUI {
     }
 
     private static void printTutorial() throws IOException {
-        InputStream asset = TextUI.class.getClassLoader().getResourceAsStream("asset/tutorial.txt");
+        InputStream asset = TextUI.class.getResourceAsStream("asset/tutorial.txt");
         asset.transferTo(System.out);
         asset.close();
     }
 
     private static void printTitleScreen() throws IOException {
-        InputStream logo = TextUI.class.getClassLoader().getResourceAsStream("asset/logo.txt");
+        InputStream logo = TextUI.class.getResourceAsStream("asset/logo.txt");
         logo.transferTo(System.out);
         logo.close();
 
@@ -280,7 +281,7 @@ public class TextUI implements GameUI {
 
     private static void printMenuScreen(GameOptions options) throws IOException {
         String template = new String(
-            TextUI.class.getClassLoader().getResourceAsStream("asset/menu.txt").readAllBytes(),
+            TextUI.class.getResourceAsStream("asset/menu.txt").readAllBytes(),
             StandardCharsets.UTF_8
         );
 
@@ -296,7 +297,7 @@ public class TextUI implements GameUI {
         for (Player player : options.playerlist) {
             System.out.printf("\tP%d:", (i+1));
 
-            if (player instanceof ConsolePlayer)
+            if (player instanceof UIPlayer)
                 System.out.printf("\tType: Human\tName: %s\n", player.getName());
             else
                 System.out.printf("\tType: AI\tName: %s\tLevel: %d\n", player.getName(), ((AIPlayer) player).getLevel().getValue());
@@ -313,7 +314,7 @@ public class TextUI implements GameUI {
 
     public void startTurn(Gameboard gameboard, List<Map.Entry<String, Integer>> leaderboard, ArrayList<String> playedWords, String currentPlayerName) {
         Terminal.clearScreen();
-        Terminal.showCursor();
+        Terminal.hideCursor();
 
         char[][] board = gameboard.board;
         for (char[] row : board) {
@@ -351,6 +352,7 @@ public class TextUI implements GameUI {
     }
 
     public String active() {
+        Terminal.showCursor();
         System.out.println("\nEnter your word, or '-skip' to skip this turn");
         System.out.print(currentPlayerName + ", make your move: ");
     
@@ -364,10 +366,11 @@ public class TextUI implements GameUI {
     }
 
     public void passive() {
-        System.out.printf("\n%s is thinking...", currentPlayerName);
+        System.out.printf("\n%s is thinking...\n", currentPlayerName);
     }
 
     public void endTurn(TurnStatus status, String move, int scoreGained, int minWordLength) {
+        Terminal.hideCursor();
         switch (status) {
             case OK:
                 System.out.printf("%s played the word '%s' and gained +%d score!\n", currentPlayerName, move, scoreGained);
@@ -390,6 +393,51 @@ public class TextUI implements GameUI {
         }
 
         System.out.println("\n==== Press enter to continue ====");
+    }
+
+    public void results(List<Map.Entry<String, Integer>> leaderboard, int skips, int maxScore) {
+        try {
+            Terminal.clearScreen();
+            Terminal.hideCursor();
+
+            InputStream asset = TextUI.class.getResourceAsStream("asset/results_head.txt");
+            asset.transferTo(System.out);
+            asset.close();
+
+            System.out.println(
+                "┃    Calories" +
+                StringUtils.padStart(
+                    String.format("%d    ┃", skips*10),
+                    31, ' '
+                )
+            );
+
+            asset = TextUI.class.getResourceAsStream("asset/results_body.txt");
+            asset.transferTo(System.out);
+            asset.close();
+
+            for (Map.Entry<String, Integer> entry : leaderboard) {
+                String name = StringUtils.truncateWithEllipsis(entry.getKey(), 16);
+                int score = entry.getValue();
+
+                System.out.println(
+                    StringUtils.padEnd(String.format("┃    %s (%dc)", name, score), 30, ' ') +
+                    StringUtils.padStart(
+                        String.format("%d%%    ┃", (score*100)/(maxScore==0 ? Integer.MAX_VALUE : maxScore)),
+                        14, ' '
+                    )
+                );
+            }
+
+            asset = TextUI.class.getResourceAsStream("asset/results_tail.txt");
+            asset.transferTo(System.out);
+            asset.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            confirm();
+            System.exit(-1);
+        }
     }
 
     public void confirm() {

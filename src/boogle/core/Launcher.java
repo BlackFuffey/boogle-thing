@@ -49,9 +49,13 @@ public class Launcher {
             }
             wordlist.close();
 
-            GameMaster gm = new GameMaster(options.playerlist, dictionary, options.customBoard, options.minWordLength, options.winScore);
+            GameMaster gm = new GameMaster(options.playerlist, dictionary, options.customBoard, options.minWordLength, options.winScore, ui);
             gm.begin();
         } catch (Exception e) {
+            try { ui.close(); }
+            catch (Exception e2){
+                e2.printStackTrace();
+            }
             e.printStackTrace();
             return;
         } }
