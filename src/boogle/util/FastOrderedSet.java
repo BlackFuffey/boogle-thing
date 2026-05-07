@@ -79,7 +79,7 @@ public class FastOrderedSet<T> implements Set<T> {
             }
         }
 
-        return at.val;
+        return at == null ? null : at.val;
     }
 
     @Override

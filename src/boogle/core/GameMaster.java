@@ -2,9 +2,7 @@ package boogle.core;
 
 import java.io.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
-import boogle.util.*;
 import boogle.core.GameUI.TurnStatus;
 import boogle.player.AIPlayer;
 
@@ -48,20 +46,22 @@ public class GameMaster {
 
         int maxScore = AIPlayer.computeMaxScore(gameboard, dictionary);
 
-        for (;
-            skipChain < playerlist.size() * 2;
-        ) try {
+        for (Player player : playerlist) {
+            player.setGame(gameboard, dictionary);
+        }
+
+        while (skipChain < playerlist.size() * 2) try {
             Player currentPlayer = playerlist.get(atPlayer);
 
             List<Map.Entry<String, Integer>> leaderboard = new ArrayList<>();
-
             for (Map.Entry<Player, Integer> entry : scoreboard.entrySet()) {
                 leaderboard.add(Map.entry(entry.getKey().getName(), entry.getValue()));
             }
+            leaderboard.sort((a, b) -> b.getValue() - a.getValue());
 
             ui.startTurn(gameboard, leaderboard, playedWordList, currentPlayer.getName());
 
-            String move = currentPlayer.nextMove(gameboard, dictionary);
+            String move = currentPlayer.nextMove();
 
             // yes ik magic string is bad. blame java for making struct defs so verbose
             if (move != null && move.equals("__defer")) {
@@ -81,25 +81,21 @@ public class GameMaster {
 
             if (move.length() < minWordLen) {
                 ui.endTurn(TurnStatus.TOO_SHORT, move, 0, minWordLen);
-                atPlayer--;
                 continue;
             }
 
             if (playedWords.contains(move)) {
                 ui.endTurn(TurnStatus.DUPLICATE, move, 0, minWordLen);
-                atPlayer--;
                 continue;
             }
 
             if (!dictionary.contains(move)) {
                 ui.endTurn(TurnStatus.NOT_IN_DICT, move, 0, minWordLen);
-                atPlayer--;
                 continue;
             }
 
             if (!gameboard.wordExists(move)) {
                 ui.endTurn(TurnStatus.NOT_ON_BOARD, move, 0, minWordLen);
-                atPlayer--;
                 continue;
             }
 
@@ -114,8 +110,9 @@ public class GameMaster {
 
             scoreboard.put(currentPlayer, scoreboard.get(currentPlayer)+scoreGained);
 
+            atPlayer = (atPlayer+1) % playerlist.size();
+
             for (Player player : playerlist) {
-                atPlayer = (atPlayer+1) % playerlist.size();
                 player.updateGameState(move, playerlist.get(atPlayer).getName());
             }
 
@@ -125,43 +122,13 @@ public class GameMaster {
             ui.confirm();
         }
 
-        Terminal.clearScreen();
-        Terminal.hideCursor();
-
-        FileInputStream stream = new FileInputStream("ui/results_head.txt");
-        stream.transferTo(System.out);
-        stream.close();
-        
-        System.out.println(
-            "┃    Calories" +
-            StringUtils.padStart(
-                String.format("%d    ┃", totalSkips*10),
-                31, ' '
-            )
-        );
-
-        stream = new FileInputStream("ui/results_body.txt");
-        stream.transferTo(System.out);
-        stream.close();
-
-        playerlist.sort((a, b) -> scoreboard.get(b) - scoreboard.get(a));
-        for (Player player : playerlist) {
-            String name = StringUtils.truncateWithEllipsis(player.getName(), 16);
-            int score = scoreboard.get(player);
-
-            System.out.println(
-                StringUtils.padEnd(String.format("┃    %s (%dc)", name, score), 30, ' ') +
-                StringUtils.padStart(
-                    String.format("%d%%    ┃", (score*100)/(maxScore==0 ? Integer.MAX_VALUE : maxScore)),
-                    14, ' '
-                )
-            );
+        List<Map.Entry<String, Integer>> leaderboard = new ArrayList<>();
+        for (Map.Entry<Player, Integer> entry : scoreboard.entrySet()) {
+            leaderboard.add(Map.entry(entry.getKey().getName(), entry.getValue()));
         }
+        leaderboard.sort((a, b) -> b.getValue() - a.getValue());
 
-        stream = new FileInputStream("ui/results_tail.txt");
-        stream.transferTo(System.out);
-        stream.close();
-
-        console.nextLine();
+        ui.results(leaderboard, totalSkips, maxScore);
+        ui.confirm();
     }
 }

@@ -7,9 +7,13 @@ ENTRY_CLASS = Main
 
 build:
 	javac -d $(BUILD_DIR) -sourcepath $(SRC_DIR) $(SRC_MAIN)
+	ln -sfn $(realpath src/boogle/ui/tui/asset) build/boogle/ui/tui/asset
 
-run:
-	java -cp $(BUILD_DIR) $(ENTRY_CLASS)
+run-tui:
+	java -cp $(BUILD_DIR) $(ENTRY_CLASS) tui
+
+run-gui:
+	java -cp $(BUILD_DIR) $(ENTRY_CLASS) gui
 
 clean:
 	rm -rf $(BUILD_DIR)
