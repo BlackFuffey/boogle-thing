@@ -14,7 +14,9 @@ class Windows extends JFrame{
         setTitle(title);
     }
     public void windowSize(boolean fullscreen){
-        this.setExtendedState(JFrame.MAXIMIZED_BOTH);
+        if(fullscreen){
+            this.setExtendedState(JFrame.MAXIMIZED_BOTH);
+        }
     }
     public void windowSize(int x, int y){
         this.setSize(x,y);
