@@ -1,5 +1,4 @@
 import java.util.*;
-import java.io.*;
 
 import boogle.core.Launcher.GameOptions;
 import boogle.core.GameUI;

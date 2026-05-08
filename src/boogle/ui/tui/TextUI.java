@@ -5,14 +5,19 @@ import boogle.core.Launcher.GameOptions;
 import boogle.player.*;
 import boogle.util.StringUtils;
 import boogle.util.Terminal;
+import boogle.sound.GameSound;
 
 import java.util.*;
+
+import javax.sound.sampled.Clip;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 
 public class TextUI implements GameUI {
     
     private Scanner console = new Scanner(System.in);
+    private Clip audio;
 
     public TextUI() {
         Terminal.enterAltBuffer();
@@ -25,11 +30,18 @@ public class TextUI implements GameUI {
     }
 
     public boolean lobby(GameOptions options) {
+        if (audio != null)
+            audio.stop();
+
         try { for (;;) {
             Terminal.hideCursor();
             Terminal.clearScreen();
             printTitleScreen();
+            audio = GameSound.intro();
             console.nextLine();
+            audio.stop();
+
+            audio = GameSound.lobby();
 
             for(;;) {
                 Terminal.clearScreen();
@@ -43,10 +55,10 @@ public class TextUI implements GameUI {
                 switch(cmd[0].toLowerCase()) {
                     case "set": {
                         String[] args = padArray(cmd[1].split(" ", 2), 2, "");
-                        System.out.print(
-                            setOption(options, args[0], args[1]) ?
-                            "Game option updated\n" : ""
-                        );
+                        if (setOption(options, args[0], args[1])) {
+                            System.out.println("Game option updated");
+                            GameSound.ok();
+                        }
                     } break;
 
                     case "add": {
@@ -55,16 +67,19 @@ public class TextUI implements GameUI {
                         if (args[0].toLowerCase().equals("human")) {
                             options.playerlist.add(new UIPlayer(args[1]));
                             System.out.printf("Human player '%s' is now player #%d", args[1], options.playerlist.size());
+                            GameSound.ok();
                             break;
                         }
 
                         if (args[0].toLowerCase().equals("ai")) {
                             options.playerlist.add(new AIPlayer(args[1], AIPlayer.Level.NORMAL));
                             System.out.printf("AI player '%s' is now player #%d", args[1], options.playerlist.size());
+                            GameSound.ok();
                             break;    
                         }
 
                         System.out.printf("Invalid player type '%s', use either 'human' or 'AI'", args[0]);
+                        GameSound.bad();
                     } break;
                         
                     case "rename": {
@@ -74,11 +89,13 @@ public class TextUI implements GameUI {
 
                         if (target == null) {
                          System.out.printf("Invalid player number '%s'\n", args[0]);
+                            GameSound.bad();
                             break;
                         }
 
                         target.setName(args[1]);
                         System.out.println("Name updated");
+                        GameSound.ok();
                     } break;
 
                     case "level": {
@@ -88,11 +105,13 @@ public class TextUI implements GameUI {
 
                         if (target == null) {
                             System.out.printf("Invalid player number '%s'\n", args[0]);
+                            GameSound.bad();
                             break;
                         }
 
                         if (!(target instanceof AIPlayer)) {
                             System.out.println("Specified player is not an AI");
+                            GameSound.bad();
                             break;
                         }
 
@@ -101,8 +120,10 @@ public class TextUI implements GameUI {
                                 Integer.parseInt(args[1])
                             ));
                             System.out.println("AI level updated");
+                            GameSound.ok();
                         } catch (Exception e) {
                             System.out.println("Invalid AI level, use an integer between 1-5");
+                            GameSound.bad();
                         }
                     } break;
 
@@ -113,12 +134,14 @@ public class TextUI implements GameUI {
                         try { from = parsePlayerNum(options.playerlist, args[0]); }
                         catch (Exception e) {
                             System.out.println("Invalid target player number");
+                            GameSound.bad();
                             break;
                         }
 
                         try { to = parsePlayerNum(options.playerlist, args[1]); }
                         catch (Exception e) {
                             System.out.println("Invalid destination player number");
+                            GameSound.bad();
                             break;
                         }
 
@@ -127,6 +150,7 @@ public class TextUI implements GameUI {
                         options.playerlist.remove(from);
                         options.playerlist.add(to, target);
                         System.out.println("Player moved");
+                        GameSound.ok();
                     } break;
                         
                     case "remove": {
@@ -136,26 +160,35 @@ public class TextUI implements GameUI {
                             int target = parsePlayerNum(options.playerlist, args[0]);
                             options.playerlist.remove(target);
                             System.out.println("Player removed");
+                            GameSound.ok();
                         } catch (Exception e) {
                             System.out.println("Invalid target player number");
+                            GameSound.bad();
                         }
                     } break;
 
                     case "start": {
-                        if (options.playerlist.size() != 0)
+                        if (options.playerlist.size() != 0) {
+                            audio.stop();
+                            audio = GameSound.ingame();
+                            GameSound.ok();
                             return true;
+                        }
                         System.out.println("Cannot start game with 0 players!");
+                        GameSound.bad();
                     } break;
 
-                    case "quit": { return false; }
+                    case "quit": { GameSound.ok(); return false; }
 
                     case "help": {
                         Terminal.clearScreen();
                         printTutorial();
+                        GameSound.ok();
                     } break;
 
                     default: {
                         System.out.printf("I don't understand '%s'.\nSee the 'Commands' section on top for list of commands.\n", cmd[0]);
+                        GameSound.bad();
                     } break;
                 }
 
@@ -212,6 +245,7 @@ public class TextUI implements GameUI {
                 catch(Exception e) {
                     System.out.println("Invalid winning score value");
                     System.out.println("Enter an integer bigger than 0, or use 0 for endless mode");
+                    GameSound.bad();
                     return false;
                 }
             break;
@@ -224,6 +258,7 @@ public class TextUI implements GameUI {
                 } catch(Exception e) {
                     System.out.println("Invalid minimum word length value");
                     System.out.println("Enter an integer bigger than 0, or use 0 for no limit");
+                    GameSound.bad();
                     return false;
                 }
             break;
@@ -234,6 +269,7 @@ public class TextUI implements GameUI {
                     options.wordlistPath = value;
                 } catch (IOException e) {
                     System.out.println("Unable to use file: "+e.getMessage());
+                    GameSound.bad();
                     return false;
                 }
             break;
@@ -253,12 +289,14 @@ public class TextUI implements GameUI {
 
                 System.out.println("Unable to use the specified file");
                 System.out.println("Leave path empty if you wish for board to be randomly generated");
+                GameSound.bad();
                 return false;
             }
 
             default:
                 System.out.println("I don't know about that option");
                 System.out.println("TIP: use the part inside of square bracket in front of the option you wish to modify");
+                GameSound.bad();
                 return false;
         }
 
@@ -374,21 +412,27 @@ public class TextUI implements GameUI {
         switch (status) {
             case OK:
                 System.out.printf("%s played the word '%s' and gained +%d score!\n", currentPlayerName, move, scoreGained);
+                GameSound.ok();
             break;
             case SKIPPED:
                 System.out.println(currentPlayerName+" skipped their turn!");
+                GameSound.bad();
             break;
             case TOO_SHORT:
                 System.out.printf("Word too short! Minimal word length is %d\n", minWordLength);
+                GameSound.bad();
             break;
             case DUPLICATE:
                 System.out.println("This word was already played! Try a different one.");
+                GameSound.bad();
             break;
             case NOT_IN_DICT:
                 System.out.println("Word not in wordlist! Try a different one.");
+                GameSound.bad();
             break;
             case NOT_ON_BOARD:
                 System.out.println("Word does not exist on board! Try a different one");
+                GameSound.bad();
             break;
         }
 
@@ -397,6 +441,9 @@ public class TextUI implements GameUI {
 
     public void results(List<Map.Entry<String, Integer>> leaderboard, int skips, int maxScore) {
         try {
+            audio.stop();
+            audio = GameSound.results();
+
             Terminal.clearScreen();
             Terminal.hideCursor();
 
