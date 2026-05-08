@@ -3,27 +3,34 @@ import boogle.core.*;
 import boogle.core.Launcher.GameOptions;
 
 import javax.swing.*;
-import java.awt.*;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 
-//i have no idea what im doing
-public class GraphicalUI implements GameUI{
-    
-    Window menu = new Window("Lobby");
-    Window game = new Window("Game");
-    private void setup(){
-        menu.AddPanel(new FlowLayout());
+class Windows extends JFrame{
+    public Windows(String title){
+        setTitle(title);
     }
+    public void windowSize(boolean fullscreen){
+        if(fullscreen){
+            this.setExtendedState(JFrame.MAXIMIZED_BOTH);
+        }
+    }
+    public void windowSize(int x, int y){
+        this.setSize(x,y);
+    }
+
+
+}
+
+public class GraphicalUI implements GameUI{
+
+    Windows mainMenu = new Windows("Main");
     public boolean lobby(GameOptions options) {
-        setup();
-        // TODO: proper implementation
-        menu.setVisible(true);
-        game.setVisible(false);
-        return false;//place holder
-        
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'lobby'");
     }
     public void newTurn(Gameboard board, HashMap<Player, Integer> scoreboard, ArrayList<String> playedWords,
             Player player) {
