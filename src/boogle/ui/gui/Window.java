@@ -2,13 +2,13 @@ package boogle.ui.gui;
 
 import javax.swing.*;
 
-import java.util.ArrayList;
+import java.util.*;
 import java.awt.*;
 import java.awt.event.*;
 
 class Components{
-    public static JButton addButton(String name, ActionListener action){
-        JButton button = new JButton(name);
+    public static JButton addButton(String word, ActionListener action){
+        JButton button = new JButton(word);
         button.addActionListener(action);;
         return button;
     }
@@ -20,11 +20,16 @@ class Components{
         TextField textField = new TextField(length);
         return textField;
     }
+    public static JComboBox addComboBox(String[] options){
+        JComboBox comboBox = new JComboBox(options);  
+        return comboBox;
+    }
     
 }
 
 public class Window extends JFrame{
-    private ArrayList<JPanel> panels = new ArrayList<JPanel>();
+    private HashMap<String,JPanel> panels = new HashMap<String,JPanel>();
+    private static HashMap<String,JComponent> items = new HashMap<String,JComponent>();
 
     public Window(String title) {
         this.setTitle(title);   
@@ -38,35 +43,45 @@ public class Window extends JFrame{
     public void windowSize(int x, int y){
         this.setSize(x,y);
     } 
-    public void AddPanel(FlowLayout layout){
-        panels.add(new JPanel(layout));
-    }
-    public void AddPanel(GridLayout layout){
-        panels.add(new JPanel(layout));
-    }
-    public void AddPanel(BoxLayout layout){
-        panels.add(new JPanel(layout));
+    public void AddPanel(String parent, String name, LayoutManager layout){
+        JPanel panel = new JPanel();
+        panel.setLayout(layout);
+        panels.put(name,panel);
+        if(parent.toLowerCase().equals("main")){
+            this.add(panel);
+        }
+        else{
+            panels.get(parent).add(panel);
+        }
     }
     /**
      * add button
      * index selects the panel, name is text of button, action is action listener
     */
-    public void PanelListAddComponent(int index,String name,ActionListener action){
-        panels.get(index).add(Components.addButton(name, action));
+    public void PanelAddButton(String panel,String name,ActionListener action){
+        panels.get(panel).add(Components.addButton(name, action));
     }
     /**
      * add text
      * index selects the panel, add text
      * */
-    public void PanelListAddComponent(int index,String text){
-        panels.get(index).add(Components.addLabel(text));
+    public void PanelAddText(String panel,String text){
+        panels.get(panel).add(Components.addLabel(text));
     }
     /**
      * add textfield
      * index selects the panel, length is length of textfield
      * */
-    public void PanelListAddComponent(int index,int length){
-        panels.get(index).add(Components.addTextField(length));
+    public void PanelAddTextField(String panel,int length){
+        panels.get(panel).add(Components.addTextField(length));
     }
 
+    public String GetComponentText(String component){
+        if(items.get(component) instanceof JTextField){
+            return ((JTextField)items.get(component)).getText();
+        }else if(items.get(component) instanceof JComboBox){
+            return ((JComboBox)items.get(component)).getSelectedItem().toString();
+        }
+        return "";
+    }
 }
