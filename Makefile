@@ -10,6 +10,9 @@ build:
 	ln -sfn $(realpath src/boogle/ui/tui/asset) build/boogle/ui/tui/asset
 	ln -sfn $(realpath src/boogle/sound/asset) build/boogle/sound/asset
 
+bundle:
+	jar cfm boogle.jar manifest.txt -C build .
+
 run-tui:
 	java -cp $(BUILD_DIR) $(ENTRY_CLASS) tui
 
