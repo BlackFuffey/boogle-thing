@@ -74,6 +74,7 @@ public class GameMaster {
                 ui.endTurn(TurnStatus.SKIPPED, move, 0, minWordLen);
                 skipChain++;
                 totalSkips++;
+                atPlayer = (atPlayer+1) % playerlist.size();
                 continue;
             }
 

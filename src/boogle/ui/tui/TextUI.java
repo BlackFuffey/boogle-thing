@@ -47,7 +47,6 @@ public class TextUI implements GameUI {
                 Terminal.clearScreen();
                 printMenuScreen(options);
                 Terminal.showCursor();
-                System.out.print("\n\nboogle> ");
 
                 String[] cmd = padArray(console.nextLine().trim().split(" ", 2), 2, "");
                 Terminal.hideCursor();
@@ -319,7 +318,7 @@ public class TextUI implements GameUI {
 
     private static void printMenuScreen(GameOptions options) throws IOException {
         String template = new String(
-            TextUI.class.getResourceAsStream("asset/menu.txt").readAllBytes(),
+            TextUI.class.getResourceAsStream("asset/menu/head.txt").readAllBytes(),
             StandardCharsets.UTF_8
         );
 
@@ -331,21 +330,37 @@ public class TextUI implements GameUI {
             options.customBoard == null ? "Generated" : "Custom"
         );
 
+        String humanTemplate = new String(
+            TextUI.class.getResourceAsStream("asset/menu/player_human.txt").readAllBytes(),
+            StandardCharsets.UTF_8
+        );
+        String aiTemplate = new String(
+            TextUI.class.getResourceAsStream("asset/menu/player_ai.txt").readAllBytes(),
+            StandardCharsets.UTF_8
+        );
+
         int i = 0;
         for (Player player : options.playerlist) {
-            System.out.printf("\tP%d:", (i+1));
 
             if (player instanceof UIPlayer)
-                System.out.printf("\tType: Human\tName: %s\n", player.getName());
+                System.out.printf(humanTemplate, (i+1), player.getName());
             else
-                System.out.printf("\tType: AI\tName: %s\tLevel: %d\n", player.getName(), ((AIPlayer) player).getLevel().getValue());
+                System.out.printf(aiTemplate, (i+1), player.getName(), ((AIPlayer) player).getLevel().getValue());
 
             i++;
         }
 
         if (i == 0) {
-            System.out.println("(No player, use 'add' command to add a player)");
+            InputStream noplayer = TextUI.class.getResourceAsStream("asset/menu/noplayer.txt");
+            noplayer.transferTo(System.out);
+            noplayer.close();
         }
+
+        InputStream tail = TextUI.class.getResourceAsStream("asset/menu/tail.txt");
+        tail.transferTo(System.out);
+        tail.close();
+
+        System.out.print("\nEnter command: ");
     }
 
     private String currentPlayerName;

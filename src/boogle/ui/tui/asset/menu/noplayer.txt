@@ -1,0 +1,1 @@
+[38;2;235;135;156m│[0m      [1m[38;2;200;200;200m(there are currently no player. use 'add' command to add a player)
