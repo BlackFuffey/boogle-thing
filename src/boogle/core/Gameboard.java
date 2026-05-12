@@ -2,17 +2,20 @@ package boogle.core;
 
 import java.util.*;
 
-import boogle.util.FastOrderedSet;
+import boogle.util.*;
 
 public class Gameboard {
 
-    private static final String[][] template = {
-        { "AAAFRS", "AEEGMU", "CEIILT", "DHHNOT", "FIPRSY" },
-        { "AAEEEE", "AEGMNN", "CEILPT", "DHLNOR", "GORRVW" },
-        { "AAFIRS", "AFIRSY", "CEIPST", "EIIITT", "HIPRRY" },
-        { "ADENNN", "BJKQXZ", "DDLNOR", "EMOTTT", "NOOTUW" },
-        { "AEEEEM", "CCNSTW", "DHHLOR", "ENSSSU", "OOOTTU" },
-    };
+    private static final Raffle<String> diceSet = new Raffle<>(Arrays.asList(
+        "AAAFRS", "AEEGMU", "CEIILT", "DHHNOT", "FIPRSY", 
+        "AAEEEE", "AEGMNN", "CEILPT", "DHLNOR", "GORRVW", 
+        "AAFIRS", "AFIRSY", "CEIPST", "EIIITT", "HIPRRY", 
+        "ADENNN", "BJKQXZ", "DDLNOR", "EMOTTT", "NOOTUW", 
+        "AEEEEM", "CCNSTW", "DHHLOR", "ENSSSU", "OOOTTU"
+    ));
+
+    private static final int BOARD_HEIGHT = 5;
+    private static final int BOARD_WIDTH = 5;
 
     public class GameboardWalker {
         private int x, y;
@@ -143,14 +146,14 @@ public class Gameboard {
     private HashMap<Character, ArrayList<int[]>> charLocs;
 
     public Gameboard() {
-        board = new char[template.length][template[0].length];
+        board = new char[BOARD_HEIGHT][BOARD_WIDTH];
         charLocs = new HashMap<>();
 
         Random rand = new Random();
 
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[i].length; j++) {
-                String charset = template[i][j];
+                String charset = diceSet.draw();
                 board[i][j] = charset.charAt(rand.nextInt(charset.length()));
 
                 ArrayList<int[]> locs = charLocs.get(board[i][j]);
