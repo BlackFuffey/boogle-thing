@@ -462,7 +462,7 @@ public class TextUI implements GameUI {
             Terminal.clearScreen();
             Terminal.hideCursor();
 
-            InputStream asset = TextUI.class.getResourceAsStream("asset/results_head.txt");
+            InputStream asset = TextUI.class.getResourceAsStream("asset/results/head.txt");
             asset.transferTo(System.out);
             asset.close();
 
@@ -474,7 +474,7 @@ public class TextUI implements GameUI {
                 )
             );
 
-            asset = TextUI.class.getResourceAsStream("asset/results_body.txt");
+            asset = TextUI.class.getResourceAsStream("asset/results/body.txt");
             asset.transferTo(System.out);
             asset.close();
 
@@ -491,7 +491,7 @@ public class TextUI implements GameUI {
                 );
             }
 
-            asset = TextUI.class.getResourceAsStream("asset/results_tail.txt");
+            asset = TextUI.class.getResourceAsStream("asset/results/tail.txt");
             asset.transferTo(System.out);
             asset.close();
 

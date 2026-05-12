@@ -16,6 +16,8 @@ public final class GameSound {
             "asset/ingame4.wav"
     };
 
+    private static boolean muted = false;
+
     public static Clip bad() {
         // 1 in 50 chance to FAHHH
         if (Math.random() > 0.98) {
@@ -44,6 +46,10 @@ public final class GameSound {
 
     public static Clip results() {
         return play("asset/results.wav", false);
+    }
+
+    public static void setMute(boolean muted) {
+        GameSound.muted = muted;
     }
 
     private static Clip play(String path, boolean loop) {
