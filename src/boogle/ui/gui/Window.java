@@ -12,23 +12,22 @@ class Components{
         button.addActionListener(action);;
         return button;
     }
-    public static Label addLabel(String text){
-        Label label = new Label(text);
+    public static JLabel addLabel(String text){
+        JLabel label = new JLabel(text);
         return label;
     }
-    public static TextField addTextField(int length){
-        TextField textField = new TextField(length);
+    public static JTextField addTextField(int length){
+        JTextField textField = new JTextField(length);
         return textField;
     }
-    public static JComboBox addComboBox(String[] options){
-        JComboBox comboBox = new JComboBox(options);  
+    public static JComboBox<String> addComboBox(String[] options){
+        JComboBox<String> comboBox = new JComboBox<String>(options);  
         return comboBox;
-    }
-    
+    }    
 }
 
 public class Window extends JFrame{
-    private HashMap<String,JPanel> panels = new HashMap<String,JPanel>();
+    private HashMap<String,JPanel> panelList = new HashMap<String,JPanel>();
     private static HashMap<String,JComponent> items = new HashMap<String,JComponent>();
 
     public Window(String title) {
@@ -45,35 +44,50 @@ public class Window extends JFrame{
     } 
     public void AddPanel(String parent, String name, LayoutManager layout){
         JPanel panel = new JPanel();
-        panel.setLayout(layout);
-        panels.put(name,panel);
+        if(layout instanceof BoxLayout){ 
+            //boxlayout setup workaround cuz boxlayout constructor is stupid
+            panel.setLayout(new BoxLayout(panel, ((BoxLayout)layout).getAxis()));
+        }else{
+            //default
+            panel.setLayout(layout);
+        }
+        panelList.put(name,panel);
         if(parent.toLowerCase().equals("main")){
             this.add(panel);
         }
         else{
-            panels.get(parent).add(panel);
+            panelList.get(parent).add(panel);
         }
     }
-    /**
-     * add button
-     * index selects the panel, name is text of button, action is action listener
-    */
-    public void PanelAddButton(String panel,String name,ActionListener action){
-        panels.get(panel).add(Components.addButton(name, action));
+
+    //add components to panel
+    public void PanelAddButton(String panel, String name,String text,ActionListener action){
+        items.put(name, Components.addButton(text, action));
+        panelList.get(panel).add(items.get(name));
     }
-    /**
-     * add text
-     * index selects the panel, add text
-     * */
-    public void PanelAddText(String panel,String text){
-        panels.get(panel).add(Components.addLabel(text));
+    public void PanelAddText(String panel ,String name,String text){
+        items.put(name, Components.addLabel(text));
+        panelList.get(panel).add(items.get(name));
     }
-    /**
-     * add textfield
-     * index selects the panel, length is length of textfield
-     * */
-    public void PanelAddTextField(String panel,int length){
-        panels.get(panel).add(Components.addTextField(length));
+    public void PanelAddTextField(String panel, String name,int length){
+        items.put(name, Components.addTextField(length));
+        panelList.get(panel).add(items.get(name));
+    }
+    public void PanelAddComboBox(String panel, String name, String[] options){
+        items.put(name, Components.addComboBox(options));
+        panelList.get(panel).add(items.get(name));
+    }
+
+    public static void CreateWarning(JComponent parent, String title, String text){
+        JOptionPane.showMessageDialog(parent, text, title, JOptionPane.WARNING_MESSAGE);
+    }
+
+    //accessor
+    public JPanel GetPanel(String name){
+        return panelList.get(name);
+    }
+    public JComponent GetComponent(String component){
+        return items.get(component);
     }
 
     public String GetComponentText(String component){
