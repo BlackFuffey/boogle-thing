@@ -21,5 +21,6 @@ run-gui:
 
 clean:
 	rm -rf $(BUILD_DIR)
+	rm -f boogle.jar
 
-.PHONY: build run clean
+.PHONY: build run-tui run-gui clean
