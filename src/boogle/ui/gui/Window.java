@@ -27,6 +27,7 @@ class Components{
 }
 
 public class Window extends JFrame{
+    public static Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
     private HashMap<String,JPanel> panelList = new HashMap<String,JPanel>();
     private static HashMap<String,JComponent> items = new HashMap<String,JComponent>();
 
@@ -44,6 +45,8 @@ public class Window extends JFrame{
     } 
     public void AddPanel(String parent, String name, LayoutManager layout){
         JPanel panel = new JPanel();
+        panel.setAlignmentX(CENTER_ALIGNMENT);
+        panel.setAlignmentY(CENTER_ALIGNMENT);
         if(layout instanceof BoxLayout){ 
             //boxlayout setup workaround cuz boxlayout constructor is stupid
             panel.setLayout(new BoxLayout(panel, ((BoxLayout)layout).getAxis()));
@@ -96,6 +99,37 @@ public class Window extends JFrame{
         }else if(items.get(component) instanceof JComboBox){
             return ((JComboBox)items.get(component)).getSelectedItem().toString();
         }
-        return "";
+        return null;
+    }
+
+    public static Dimension getScreenSize(){
+        return screenSize;
+    }
+
+    public void setAnchor(String panel, String alignment){
+        switch(alignment.toUpperCase()){
+            //center + cardinal
+            case "C":
+                GetPanel(panel).setAlignmentX(CENTER_ALIGNMENT);
+                GetPanel(panel).setAlignmentY(CENTER_ALIGNMENT);
+            case "NW":
+                
+            case "N":
+                GetPanel(panel).setAlignmentX(CENTER_ALIGNMENT);
+                GetPanel(panel).setAlignmentY(TOP_ALIGNMENT);
+            case "NE":
+            case "E":
+            case "SE":
+            case "S":
+                GetPanel(panel).setAlignmentX(CENTER_ALIGNMENT);
+                GetPanel(panel).setAlignmentY(BOTTOM_ALIGNMENT);
+            case "SW":
+            case "W":
+                GetPanel(panel).setAlignmentX(LEFT_ALIGNMENT);
+                GetPanel(panel).setAlignmentY(CENTER_ALIGNMENT);
+        
+            default:
+                return;
+        }
     }
 }

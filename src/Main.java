@@ -4,7 +4,7 @@ import boogle.core.Launcher.GameOptions;
 import boogle.core.GameUI;
 import boogle.core.Launcher;
 import boogle.ui.tui.TextUI;
-//import boogle.ui.gui.GraphicalUI;
+import boogle.ui.gui.GraphicalUI;
 
 public class Main {
     
@@ -23,9 +23,10 @@ public class Main {
         }
 
 
-      //else if (args[1].equalsIgnoreCase("gui")) {
-      //    ui = new GraphicalUI();
-      //}
+      else if (args[0].equalsIgnoreCase("gui")) {//wip
+        System.out.println("NOTICE: testing only (WIP)");
+        ui = new GraphicalUI();
+      }
 
         else {
             System.err.printf("Unknown UI type '%s'\n", args[1]);
