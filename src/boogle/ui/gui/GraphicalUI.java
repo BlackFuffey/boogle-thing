@@ -139,6 +139,7 @@ public class GraphicalUI implements GameUI{
         MainMenu.Panel("SETTINGS").AddButton( "quit","Quit",e ->{System.exit(0);});
         MainMenu.setVisible(true);
         while(!ready){
+            //TODO: fix gitter
             MainMenu.Panel("PLAYERLIST").removeAll();
             MainMenu.Panel("PLAYERLIST").AddText("players", "Players:");
             for(Player players: options.playerlist){
