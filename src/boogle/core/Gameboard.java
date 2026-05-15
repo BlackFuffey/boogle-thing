@@ -6,7 +6,7 @@ import boogle.util.*;
 
 public class Gameboard {
 
-    private static final Raffle<String> diceSet = new Raffle<>(Arrays.asList(
+    private final Raffle<String> diceSet = new Raffle<>(Arrays.asList(
         "AAAFRS", "AEEGMU", "CEIILT", "DHHNOT", "FIPRSY", 
         "AAEEEE", "AEGMNN", "CEILPT", "DHLNOR", "GORRVW", 
         "AAFIRS", "AFIRSY", "CEIPST", "EIIITT", "HIPRRY", 
