@@ -114,8 +114,31 @@ public class AIPlayer implements Player {
             }
         }
 
-        // finally, sort possible words by length and insert into available
+        // finally, sort possible words by length, trim based on level, and insert into available
         possibilities.sort((a, b) -> a.length() - b.length());
+        int trimFrom = -1;
+        switch (this.level) {
+            case PERFECT: trimFrom = possibilities.size(); break;
+            
+            case SMART: trimFrom = (int)(
+                possibilities.size() * ((0.9-0.7) * Math.random() + 0.7)
+            ); break;
+            
+            case GOOD: trimFrom = (int)(
+                possibilities.size() * ((0.7-0.5) * Math.random() + 0.5)
+            ); break;
+
+            case NORMAL: trimFrom = (int)(
+                possibilities.size() * ((0.5-0.2) * Math.random() + 0.2)
+            ); break;
+
+            case DUMB: trimFrom = (int)(
+                possibilities.size() * ((0.2-0.1) * Math.random() + 0.1)
+            ); break;
+        }
+
+        possibilities.subList(trimFrom, possibilities.size()).clear();
+
         this.available.addAll(possibilities);
     }
     
@@ -143,9 +166,9 @@ public class AIPlayer implements Player {
 
         // make a move according to the AI level
         switch(this.level) {
-            case PERFECT: return available.get(0);
+            case PERFECT: return available.get(available.size()-1);
 
-            case DUMB: return available.get(available.size()-1);
+            case DUMB: return available.get(0);
 
             case SMART:
             case GOOD:
