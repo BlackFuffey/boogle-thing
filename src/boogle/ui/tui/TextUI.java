@@ -3,14 +3,12 @@ package boogle.ui.tui;
 import boogle.core.*;
 import boogle.core.Launcher.GameOptions;
 import boogle.player.*;
-import boogle.util.StringUtils;
-import boogle.util.Terminal;
+import boogle.util.*;
 import boogle.sound.GameSound;
-
-import java.util.*;
 
 import javax.sound.sampled.Clip;
 
+import java.util.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 
@@ -303,24 +301,17 @@ public class TextUI implements GameUI {
     }
 
     private static void printTutorial() throws IOException {
-        InputStream asset = TextUI.class.getResourceAsStream("asset/tutorial.txt");
-        asset.transferTo(System.out);
-        asset.close();
+        System.out.println(getAsset("asset/menu/tutorial.txt"));
     }
 
     private static void printTitleScreen() throws IOException {
-        InputStream logo = TextUI.class.getResourceAsStream("asset/logo.txt");
-        logo.transferTo(System.out);
-        logo.close();
+        System.out.println(getAsset("asset/logo.txt"));
 
         System.out.println("\n\t\t\t-- Press enter to continue --\n");
     }
 
     private static void printMenuScreen(GameOptions options) throws IOException {
-        String template = new String(
-            TextUI.class.getResourceAsStream("asset/menu/head.txt").readAllBytes(),
-            StandardCharsets.UTF_8
-        );
+        String template = getAsset("asset/menu/head.txt");
 
         System.out.printf(
             template,
@@ -330,14 +321,8 @@ public class TextUI implements GameUI {
             options.customBoard == null ? "Generated" : "Custom"
         );
 
-        String humanTemplate = new String(
-            TextUI.class.getResourceAsStream("asset/menu/player_human.txt").readAllBytes(),
-            StandardCharsets.UTF_8
-        );
-        String aiTemplate = new String(
-            TextUI.class.getResourceAsStream("asset/menu/player_ai.txt").readAllBytes(),
-            StandardCharsets.UTF_8
-        );
+        String humanTemplate = getAsset("asset/menu/player_human.txt");
+        String aiTemplate = getAsset("asset/menu/player_ai.txt");
 
         int i = 0;
         for (Player player : options.playerlist) {
@@ -350,57 +335,129 @@ public class TextUI implements GameUI {
             i++;
         }
 
-        if (i == 0) {
-            InputStream noplayer = TextUI.class.getResourceAsStream("asset/menu/noplayer.txt");
-            noplayer.transferTo(System.out);
-            noplayer.close();
-        }
+        if (i == 0)
+            System.out.println(getAsset("asset/menu/noplayer.txt"));
 
-        InputStream tail = TextUI.class.getResourceAsStream("asset/menu/tail.txt");
-        tail.transferTo(System.out);
-        tail.close();
+        System.out.println(getAsset("asset/menu/tail.txt"));
 
-        System.out.print("\nEnter command: ");
+        System.out.print("\n[38;2;255;176;0m[1mEnter command:[0m ");
     }
 
     private String currentPlayerName;
 
     public void startTurn(Gameboard gameboard, List<Map.Entry<String, Integer>> leaderboard, ArrayList<String> playedWords, String currentPlayerName) {
-        Terminal.clearScreen();
         Terminal.hideCursor();
+        StringBuilder boardDisplayBuilder = new StringBuilder();
 
         char[][] board = gameboard.board;
-        for (char[] row : board) {
-            System.out.println('\n');
-            for (char letter : row) {
-                System.out.print("   "+letter);
+
+        /* Head */ {
+            String body = getAsset("asset/game/board/y_head/body.txt");
+            String head = getAsset("asset/game/board/y_head/head.txt");
+            String tail = getAsset("asset/game/board/y_head/tail.txt");
+            boardDisplayBuilder.append(head);
+
+            for (char ch : board[0]) {
+                boardDisplayBuilder.append(body);
+            } 
+
+            boardDisplayBuilder.append(tail);
+        }
+
+        /* Body */ {
+            String die = getAsset("asset/game/board/die.txt");
+            String yDivBody = getAsset("asset/game/board/y_div/body.txt");
+            String yDivHead = getAsset("asset/game/board/y_div/head.txt");
+            String yDivTail = getAsset("asset/game/board/y_div/tail.txt");
+            String xDiv= getAsset("asset/game/board/x_div.txt");
+            String xHead= getAsset("asset/game/board/x_head.txt");
+            String xTail= getAsset("asset/game/board/x_tail.txt");
+            for (char[] row : board) {
+                boardDisplayBuilder.append('\n');
+                boardDisplayBuilder.append(xHead);
+                for (int i = 0; i < row.length; i++) {
+                    boardDisplayBuilder.append(String.format(die, row[i]));
+                    if (i != row.length-1) {
+                        boardDisplayBuilder.append(xDiv);
+                    }
+                }
+
+                boardDisplayBuilder.append(xTail);
+                boardDisplayBuilder.append('\n');
+                boardDisplayBuilder.append(yDivHead);
+                for (char letter : row) {
+                    boardDisplayBuilder.append(yDivBody);
+                }
+                boardDisplayBuilder.append(yDivTail);
             }
         }
+        
+        boardDisplayBuilder.append("\r\033[K");
 
-        System.out.println('\n');
-        System.out.println("==== Scores ====");
-        for (Map.Entry<String, Integer> player: leaderboard){
-            System.out.println(player.getKey()+"\t"+player.getValue());
+        /* Tail */ {
+            String body = getAsset("asset/game/board/y_tail/body.txt");
+            String head = getAsset("asset/game/board/y_tail/head.txt");
+            String tail = getAsset("asset/game/board/y_tail/tail.txt");
+            boardDisplayBuilder.append(head);
+
+            for (char ch : board[0]) {
+                boardDisplayBuilder.append(body);
+            } 
+
+            boardDisplayBuilder.append(tail);
         }
 
-        System.out.println('\n');
+        boardDisplayBuilder.append('\n');
+        String boardDisplay = boardDisplayBuilder.toString();
 
-        System.out.println("==== Played Words ====");
-        int lineLength = 0;
-        for (String word : playedWords) {
-            if (lineLength / 60 >= 1) {
-                System.out.println();
-                lineLength = 0;
+        String scoreDisplay;
+        /* Scores */ {
+            StringBuilder scoreboardBuilder = new StringBuilder();
+
+            for (Map.Entry<String, Integer> player: leaderboard){
+                scoreboardBuilder.append(String.format(
+                    getAsset("asset/game/scores_body.txt"),
+                    player.getKey(), player.getValue()
+                ));
+                scoreboardBuilder.append('\n');
             }
-            System.out.print(word+" ");
-            lineLength += word.length()+1;
+
+            scoreDisplay = scoreboardBuilder.toString();
         }
-        if (playedWords.size() == 0) 
-        System.out.println("(No played words yet)");
 
-        System.out.println('\n');
+        String wordDisplay;
+        /* Played Words */ {
+            StringBuilder wordsBuilder = new StringBuilder();
 
-        System.out.printf("It's %s's turn\n\n", currentPlayerName);
+            int lineLength = 0;
+            StringBuilder lineBuilder = new StringBuilder();
+            String wordLine = getAsset("asset/game/played_body.txt");
+            for (String word : playedWords) {
+                if (lineLength / 90 >= 1) {
+                    wordsBuilder.append(String.format(wordLine, lineBuilder.toString()));
+                    wordsBuilder.append('\n');
+                    lineLength = 0;
+                    lineBuilder = new StringBuilder();
+                }
+                lineBuilder.append(word);
+                lineBuilder.append(' ');
+                lineLength += word.length()+1;
+            }
+
+            if (playedWords.size() == 0) 
+                lineBuilder.append("(No played words yet)");
+
+            wordsBuilder.append(String.format(wordLine, lineBuilder.toString()));
+            wordsBuilder.append('\n');
+            wordDisplay = wordsBuilder.toString();
+        }
+
+        Terminal.clearScreen();
+        System.out.printf(
+            getAsset("asset/game/layout.txt"),
+            boardDisplay, scoreDisplay, wordDisplay, currentPlayerName
+        );
+
         this.currentPlayerName = currentPlayerName;
     }
 
@@ -455,54 +512,74 @@ public class TextUI implements GameUI {
     }
 
     public void results(List<Map.Entry<String, Integer>> leaderboard, int skips, int maxScore) {
-        try {
-            audio.stop();
-            audio = GameSound.results();
+        audio.stop();
+        audio = GameSound.results();
 
-            Terminal.clearScreen();
-            Terminal.hideCursor();
+        Terminal.clearScreen();
+        Terminal.hideCursor();
 
-            InputStream asset = TextUI.class.getResourceAsStream("asset/results/head.txt");
-            asset.transferTo(System.out);
-            asset.close();
+        System.out.println(getAsset("asset/results/head.txt"));
+
+        System.out.println(
+            "┃    Calories" +
+            StringUtils.padStart(
+                String.format("%d    ┃", skips*10),
+                31, ' '
+            )
+        );
+
+        System.out.println(getAsset("asset/results/body.txt"));
+
+        for (Map.Entry<String, Integer> entry : leaderboard) {
+            String name = StringUtils.truncateWithEllipsis(entry.getKey(), 16);
+            int score = entry.getValue();
 
             System.out.println(
-                "┃    Calories" +
+                StringUtils.padEnd(String.format("┃    %s (%dc)", name, score), 30, ' ') +
                 StringUtils.padStart(
-                    String.format("%d    ┃", skips*10),
-                    31, ' '
+                    String.format("%d%%    ┃", (score*100)/(maxScore==0 ? Integer.MAX_VALUE : maxScore)),
+                    14, ' '
                 )
             );
-
-            asset = TextUI.class.getResourceAsStream("asset/results/body.txt");
-            asset.transferTo(System.out);
-            asset.close();
-
-            for (Map.Entry<String, Integer> entry : leaderboard) {
-                String name = StringUtils.truncateWithEllipsis(entry.getKey(), 16);
-                int score = entry.getValue();
-
-                System.out.println(
-                    StringUtils.padEnd(String.format("┃    %s (%dc)", name, score), 30, ' ') +
-                    StringUtils.padStart(
-                        String.format("%d%%    ┃", (score*100)/(maxScore==0 ? Integer.MAX_VALUE : maxScore)),
-                        14, ' '
-                    )
-                );
-            }
-
-            asset = TextUI.class.getResourceAsStream("asset/results/tail.txt");
-            asset.transferTo(System.out);
-            asset.close();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            confirm();
-            System.exit(-1);
         }
+
+        System.out.println(getAsset("asset/results/tail.txt"));
     }
 
     public void confirm() {
         console.nextLine();
     }
+
+    private static HashMap<String, String> assetCache = new HashMap<>();
+
+    private static String getAsset(String path) {
+        try {
+            String result = assetCache.get(path);
+
+            if (result != null)
+            return result;
+
+            InputStream stream = TextUI.class.getResourceAsStream(path);
+
+            if (stream == null) {
+                throw new IOException("No asset found on path "+path);
+            }
+
+            result = new String(
+                stream.readAllBytes(),
+                StandardCharsets.UTF_8
+            ).replaceFirst("\\n$", "");
+
+            stream.close();
+
+            assetCache.put(path, result);
+            return result;
+        } catch (IOException e) {
+            System.err.println("Unable to load asset "+path);
+            e.printStackTrace();
+            System.exit(-1);
+            return null;
+        }
+    }
 }
+

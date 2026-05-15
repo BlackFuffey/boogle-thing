@@ -6,4 +6,4 @@
 ┃ maximum earnable score. 10 calories is   ┃
 ┃ added on every skip. 0 calories a day is ┃
 ┃ used for general boogle advice.          ┃
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛[0m
