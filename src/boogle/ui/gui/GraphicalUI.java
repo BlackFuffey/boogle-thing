@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.concurrent.Flow;
 
 
 //i have no idea what im doing
@@ -25,14 +24,14 @@ public class GraphicalUI implements GameUI{
 
     /*
     naming convention:
-        Window - upper
+        Windows - upper
         PANEL - all caps
         component - lower
     */
-    Window MainMenu = new Window("lobby");
-    Window Game = new Window("Game");
-    Window Settings = new Window("Settings");
-    Window Results = new Window("Results");
+    Windows MainMenu = new Windows("lobby");
+    Windows Game = new Windows("Game");
+    Windows Settings = new Windows("Settings");
+    Windows Results = new Windows("Results");
 
     private Boolean startCheck(GameOptions options){
         if (options.playerlist.size() != 0) {
@@ -41,7 +40,7 @@ public class GraphicalUI implements GameUI{
             //GameSound.ok();
             return true;
         }
-        Window.CreateWarning(null, "Settings Missing", "Players Missing\nPlease Open Settings to Add Players");
+        Windows.CreateWarning(null, "Settings Missing", "Players Missing\nPlease Open Settings to Add Players");
         return false;
     }
     private String getPlayerType(Player player){
@@ -59,29 +58,63 @@ public class GraphicalUI implements GameUI{
         }
         return null;
     }
+    private void validatePlayer(GameOptions options,String type, String name, String level){
+        switch(type){
+            case "Ai":
+                try{
+                    options.playerlist.add(new AIPlayer(name, boogle.player.AIPlayer.Level.fromValue(Integer.parseInt(level))));
+                }catch(IllegalArgumentException e){
+                    Windows.CreateWarning(null,"Faulty Settings","Error creating Player\nPlease change Player settings");
+                }
+            case "Human":
+                options.playerlist.add(new UIPlayer(name));
+            }
+    }
+
     //TODO: settings option
     private void OpenSettings(GameOptions options){
         //layout
-        Settings.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        Settings.windowSize((int)Window.getScreenSize().getWidth()/2,(int)Window.getScreenSize().getHeight());
+        Settings.windowSize((int)Windows.getScreenSize().getWidth()/2,(int)Windows.getScreenSize().getHeight());
         //title
-        Settings.AddPanel("MAIN", "TITLE", new BoxLayout(Settings,BoxLayout.X_AXIS));
-        Settings.PanelAddText("TITLE","title", "Settings");
-        Settings.GetComponent("title").setFont(new Font("Ariel",Font.PLAIN,10));
+        Settings.AddPanel("MAIN","LAYOUT", new BoxLayout(Game,BoxLayout.X_AXIS));
+        Settings.AddPanel("LAYOUT", "SETTINGS",new BoxLayout(Settings, BoxLayout.Y_AXIS));
+        Settings.AddPanel("LAYOUT", "PLAYERLIST", new BoxLayout(Settings, BoxLayout.Y_AXIS));
+
+        Settings.Panel("SETTINGS").AddText("title", "Settings");
+        Settings.Panel("SETTINGS").GetItem("title").setFont(new Font("Ariel",Font.BOLD,30));
         //settings
-        Settings.AddPanel("TITLE", "SETTINGS",new BoxLayout(Settings, BoxLayout.X_AXIS));
-        Settings.AddPanel("MAIN", "PLAYERLIST", new BoxLayout(Settings, BoxLayout.X_AXIS));
-
-
+        //player setting
+        Settings.Panel("SETTINGS").AddText( "players", "Players:");
+        Settings.AddPanel("SETTINGS", "PLAYERS",new FlowLayout());
         //playerlist
+
+        Settings.Panel("PLAYERS").AddComboBox("PlayerSettingType", new String[]{"Human","AI"});
+        Settings.Panel("PLAYERS").AddText("settingsplayernamelabel", "Name");
+        Settings.Panel("PLAYERS").AddTextField("PlayerSettingName", 10);
+        Settings.Panel("PLAYERS").AddText("settingsailevel", "ai level");
+        Settings.Panel("PLAYERS").AddComboBox("PlayerSettingLevel",new String[]{"","1","2","3","4","5"});
+        Settings.Panel("PLAYERS").AddButton("PlayerSettingSubmit","Submit",e->{validatePlayer(options,
+            Settings.Panel("PLAYERS").GetItemText("PlayerSettingType"),
+            Settings.Panel("PLAYERS").GetItemText("PlayerSettingName"),
+            Settings.Panel("PLAYERS").GetItemText("PlayerSettingLevel")
+        );
+        Settings.Panel("PLAYERLIST").Clear();
+        Settings.Panel("PLAYERLIST").AddText("playerlist","Current Players: ");
         for(Player players: options.playerlist){
             String name = players.getName();
             Settings.AddPanel("PLAYERLIST", players.getName(), new FlowLayout());
-            Settings.PanelAddText(name,"number",Integer.toString(options.playerlist.indexOf(players)));
-            Settings.PanelAddText(name,"name",players.getName());
-            Settings.PanelAddText(name, "type", getPlayerType(players));
-            Settings.PanelAddText(name, "level", getAILevel(players));
+            Settings.Panel(name).AddText(name+" number",Integer.toString(options.playerlist.indexOf(players)));
+            Settings.Panel(name).AddText(name+" name",players.getName());
+            Settings.Panel(name).AddText(name+" type", getPlayerType(players));
+            Settings.Panel(name).AddText(name+" level", getAILevel(players));
         }
+        Settings.Panel("PLAYERLIST").revalidate();
+        Settings.Panel("PLAYERLIST").repaint();
+    });
+
+
+        
+        
         
         Settings.AddPanel("PLAYERLIST", "PLAYERSETTINGS", new BoxLayout(Settings,BoxLayout.X_AXIS));
 
@@ -94,18 +127,27 @@ public class GraphicalUI implements GameUI{
         //title screen
         MainMenu.windowSize(true);
         MainMenu.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        MainMenu.AddPanel("MAIN", "LAYOUT", new BoxLayout(Game, BoxLayout.Y_AXIS));
+        MainMenu.AddPanel("LAYOUT","TITLE",new FlowLayout());
+        MainMenu.Panel("TITLE").AddText("title", "BOOGLE");
+        MainMenu.Panel("title").setFont(new Font("Ariel",Font.BOLD,100));
+        MainMenu.AddPanel("LAYOUT", "PLAYERLIST", new BoxLayout(Game,BoxLayout.Y_AXIS));
         
-        MainMenu.AddPanel("MAIN","TITLE",new FlowLayout());
-        MainMenu.setAnchor("TITLE", "C");
-        MainMenu.PanelAddText("TITLE","title", "BOOGLE");
-        MainMenu.GetComponent("title").setFont(new Font("Ariel",Font.BOLD,500));
-        MainMenu.AddPanel("MAIN", "SETTINGS", new BoxLayout(Game, 2));
-        MainMenu.setAnchor("SETTINGS","C");
-        MainMenu.PanelAddButton("SETTINGS", "settings","Settings",e->{OpenSettings(options);});
-        MainMenu.PanelAddButton("SETTINGS", "start", "Start", e ->{ready = startCheck(options);});
-        MainMenu.PanelAddButton("SETTINGS", "quit","Quit",e ->{System.exit(0);});
+        MainMenu.AddPanel("LAYOUT", "SETTINGS", new FlowLayout());
+        MainMenu.Panel("SETTINGS").AddButton("settings","Settings",e->{OpenSettings(options);});
+        MainMenu.Panel("SETTINGS").AddButton("start", "Start", e ->{ready = startCheck(options);});
+        MainMenu.Panel("SETTINGS").AddButton( "quit","Quit",e ->{System.exit(0);});
         MainMenu.setVisible(true);
-        return false; //TODO: this
+        while(!ready){
+            MainMenu.Panel("PLAYERLIST").removeAll();
+            MainMenu.Panel("PLAYERLIST").AddText("players", "Players:");
+            for(Player players: options.playerlist){
+            MainMenu.Panel("PLAYERLIST").AddText(players.getName(), players.getName());
+            MainMenu.Panel("PLAYERLIST").revalidate();
+            MainMenu.Panel("PLAYERLIST").repaint();
+            }
+        }
+        return true; //TODO: this
     }
     @Override
     public void close() throws Exception {
