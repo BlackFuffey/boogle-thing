@@ -29,7 +29,7 @@ public class Main {
       }
 
         else {
-            System.err.printf("Unknown UI type '%s'\n", args[1]);
+            System.err.printf("Unknown UI type '%s'\n", args[0]);
             System.err.println("Usage: boogle <tui|gui>");
             ui = null; // to keep compiler from complaining uninitialized variable
             System.err.flush();
