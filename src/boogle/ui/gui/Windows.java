@@ -30,7 +30,6 @@ class Components{
 
 
 public class Windows extends JFrame{
-
     //panel inner class (for organization)
     class Panels extends JPanel{
         //constructor
@@ -44,8 +43,7 @@ public class Windows extends JFrame{
             items.clear();
             this.removeAll();
         }
-
-        
+  
         public void AddButton(String name,String text,ActionListener action){
             items.put(name, Components.addButton(text, action));
             this.add(items.get(name));
@@ -64,7 +62,36 @@ public class Windows extends JFrame{
             this.add(items.get(name));
         }
 
-
+        public void setAnchor( String alignment){
+        switch(alignment.toUpperCase()){
+            //center + cardinal
+            case "C":
+                this.setAlignmentX(CENTER_ALIGNMENT);
+                this.setAlignmentY(CENTER_ALIGNMENT);
+            case "NW":
+                this.setAlignmentX(TOP_ALIGNMENT);
+                this.setAlignmentY(RIGHT_ALIGNMENT);
+                
+            case "N":
+                this.setAlignmentX(CENTER_ALIGNMENT);
+                this.setAlignmentY(TOP_ALIGNMENT);
+            case "NE":
+                this.setAlignmentX(TOP_ALIGNMENT);
+                this.setAlignmentY(LEFT_ALIGNMENT);
+            case "E":
+            case "SE":
+            case "S":
+                this.setAlignmentX(CENTER_ALIGNMENT);
+                this.setAlignmentY(BOTTOM_ALIGNMENT);
+            case "SW":
+            case "W":
+                this.setAlignmentX(LEFT_ALIGNMENT);
+                this.setAlignmentY(CENTER_ALIGNMENT);
+        
+            default:
+                return;
+            }
+        }
     //accessor
         public JComponent GetItem(String component){
             return items.get(component);
@@ -80,11 +107,26 @@ public class Windows extends JFrame{
         }
     }
 
+//MAIN CLASS STUFF
+    private boolean created; 
     public static Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
     private HashMap<String,Panels> panelList = new HashMap<String,Panels>();
+
     
     public Windows(String title) {
-        this.setTitle(title);   
+        this.setTitle(title); 
+        this.created=false;  
+    }
+
+    public void Created(){
+        created=true;
+    }
+
+    public void Clear(){
+        for(String name: panelList.keySet()){
+            panelList.remove(name);
+        }
+        this.removeAll();
     }
     
     public void windowSize(boolean fullscreen){
@@ -129,30 +171,8 @@ public class Windows extends JFrame{
         return screenSize;
     }
 
-    public void setAnchor(String panel, String alignment){
-        switch(alignment.toUpperCase()){
-            //center + cardinal
-            case "C":
-                Panel(panel).setAlignmentX(CENTER_ALIGNMENT);
-                Panel(panel).setAlignmentY(CENTER_ALIGNMENT);
-            case "NW":
-                
-            case "N":
-                Panel(panel).setAlignmentX(CENTER_ALIGNMENT);
-                Panel(panel).setAlignmentY(TOP_ALIGNMENT);
-            case "NE":
-            case "E":
-            case "SE":
-            case "S":
-                Panel(panel).setAlignmentX(CENTER_ALIGNMENT);
-                Panel(panel).setAlignmentY(BOTTOM_ALIGNMENT);
-            case "SW":
-            case "W":
-                Panel(panel).setAlignmentX(LEFT_ALIGNMENT);
-                Panel(panel).setAlignmentY(CENTER_ALIGNMENT);
-        
-            default:
-                return;
-        }
+    public boolean isCreated(){
+        return created;
     }
+
 }
