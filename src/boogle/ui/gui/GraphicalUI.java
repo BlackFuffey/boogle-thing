@@ -239,6 +239,11 @@ public class GraphicalUI implements GameUI{
         throw new UnsupportedOperationException("Unimplemented method 'confirm'");
     }
     @Override
+    public void confirmForSure() {
+        confirm();
+    }
+
+    @Override
     public void results(List<Entry<String, Integer>> leaderboard, int skips, int maxScore) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'results'");

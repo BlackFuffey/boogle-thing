@@ -45,11 +45,11 @@ public final class GameSound {
     }
 
     public static Clip results() {
-        return play("asset/results.wav", false);
+        return play("asset/results.wav", true);
     }
 
-    public static void setMute(boolean muted) {
-        GameSound.muted = muted;
+    public static Clip nothing() {
+        return play("asset/nothing.wav", false);
     }
 
     private static Clip play(String path, boolean loop) {

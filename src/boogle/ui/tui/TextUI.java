@@ -27,23 +27,27 @@ public class TextUI implements GameUI {
         Terminal.showCursor();
     }
 
+    private boolean autoConfirm = false;
+    private boolean playMusic = false;
+    private boolean playSfx = false;
+
     public boolean lobby(GameOptions options) {
-        if (audio != null)
-            audio.stop();
+        if (audio != null) audio.stop();
 
         try { for (;;) {
             Terminal.hideCursor();
             Terminal.clearScreen();
             printTitleScreen();
-            audio = GameSound.intro();
+            if (this.playMusic) audio = GameSound.intro();
+            else audio = GameSound.nothing();
             console.nextLine();
             audio.stop();
 
-            audio = GameSound.lobby();
+            if (this.playMusic) audio = GameSound.lobby();
 
             for(;;) {
                 Terminal.clearScreen();
-                printMenuScreen(options);
+                printMenuScreen(options, this);
                 Terminal.showCursor();
 
                 String[] cmd = padArray(console.nextLine().trim().split(" ", 2), 2, "");
@@ -52,9 +56,11 @@ public class TextUI implements GameUI {
                 switch(cmd[0].toLowerCase()) {
                     case "set": {
                         String[] args = padArray(cmd[1].split(" ", 2), 2, "");
-                        if (setOption(options, args[0], args[1])) {
+                        if (setOption(options, this, args[0], args[1])) {
                             System.out.println("Game option updated");
-                            GameSound.ok();
+                            if (this.playSfx) GameSound.ok();
+                        } else {
+                            if (this.playSfx) GameSound.bad();
                         }
                     } break;
 
@@ -64,19 +70,19 @@ public class TextUI implements GameUI {
                         if (args[0].toLowerCase().equals("human")) {
                             options.playerlist.add(new UIPlayer(args[1]));
                             System.out.printf("Human player '%s' is now player #%d", args[1], options.playerlist.size());
-                            GameSound.ok();
+                            if (this.playSfx) GameSound.ok();
                             break;
                         }
 
                         if (args[0].toLowerCase().equals("ai")) {
                             options.playerlist.add(new AIPlayer(args[1], AIPlayer.Level.NORMAL));
                             System.out.printf("AI player '%s' is now player #%d", args[1], options.playerlist.size());
-                            GameSound.ok();
+                            if (this.playSfx) GameSound.ok();
                             break;    
                         }
 
                         System.out.printf("Invalid player type '%s', use either 'human' or 'AI'", args[0]);
-                        GameSound.bad();
+                        if (this.playSfx) GameSound.bad();
                     } break;
                         
                     case "rename": {
@@ -86,13 +92,13 @@ public class TextUI implements GameUI {
 
                         if (target == null) {
                          System.out.printf("Invalid player number '%s'\n", args[0]);
-                            GameSound.bad();
+                            if (this.playSfx) GameSound.bad();
                             break;
                         }
 
                         target.setName(args[1]);
                         System.out.println("Name updated");
-                        GameSound.ok();
+                        if (this.playSfx) GameSound.ok();
                     } break;
 
                     case "level": {
@@ -102,13 +108,13 @@ public class TextUI implements GameUI {
 
                         if (target == null) {
                             System.out.printf("Invalid player number '%s'\n", args[0]);
-                            GameSound.bad();
+                            if (this.playSfx) GameSound.bad();
                             break;
                         }
 
                         if (!(target instanceof AIPlayer)) {
                             System.out.println("Specified player is not an AI");
-                            GameSound.bad();
+                            if (this.playSfx) GameSound.bad();
                             break;
                         }
 
@@ -117,10 +123,10 @@ public class TextUI implements GameUI {
                                 Integer.parseInt(args[1])
                             ));
                             System.out.println("AI level updated");
-                            GameSound.ok();
+                            if (this.playSfx) GameSound.ok();
                         } catch (Exception e) {
                             System.out.println("Invalid AI level, use an integer between 1-5");
-                            GameSound.bad();
+                            if (this.playSfx) GameSound.bad();
                         }
                     } break;
 
@@ -131,14 +137,14 @@ public class TextUI implements GameUI {
                         try { from = parsePlayerNum(options.playerlist, args[0]); }
                         catch (Exception e) {
                             System.out.println("Invalid target player number");
-                            GameSound.bad();
+                            if (this.playSfx) GameSound.bad();
                             break;
                         }
 
                         try { to = parsePlayerNum(options.playerlist, args[1]); }
                         catch (Exception e) {
                             System.out.println("Invalid destination player number");
-                            GameSound.bad();
+                            if (this.playSfx) GameSound.bad();
                             break;
                         }
 
@@ -147,7 +153,7 @@ public class TextUI implements GameUI {
                         options.playerlist.remove(from);
                         options.playerlist.add(to, target);
                         System.out.println("Player moved");
-                        GameSound.ok();
+                        if (this.playSfx) GameSound.ok();
                     } break;
                         
                     case "remove": {
@@ -157,35 +163,38 @@ public class TextUI implements GameUI {
                             int target = parsePlayerNum(options.playerlist, args[0]);
                             options.playerlist.remove(target);
                             System.out.println("Player removed");
-                            GameSound.ok();
+                            if (this.playSfx) GameSound.ok();
                         } catch (Exception e) {
                             System.out.println("Invalid target player number");
-                            GameSound.bad();
+                            if (this.playSfx) GameSound.bad();
                         }
                     } break;
 
                     case "start": {
                         if (options.playerlist.size() != 0) {
                             audio.stop();
-                            audio = GameSound.ingame();
-                            GameSound.ok();
+                            if (this.playMusic) audio = GameSound.ingame();
+                            if (this.playSfx) GameSound.ok();
                             return true;
                         }
                         System.out.println("Cannot start game with 0 players!");
-                        GameSound.bad();
+                        if (this.playSfx) GameSound.bad();
                     } break;
 
-                    case "quit": { GameSound.ok(); return false; }
+                    case "quit": { 
+                        if (this.playSfx) GameSound.ok();
+                        return false; 
+                    }
 
                     case "help": {
                         Terminal.clearScreen();
                         printTutorial();
-                        GameSound.ok();
+                        if (this.playSfx) GameSound.ok();
                     } break;
 
                     default: {
                         System.out.printf("I don't understand '%s'.\nSee the 'Commands' section on top for list of commands.\n", cmd[0]);
-                        GameSound.bad();
+                        if (this.playSfx) GameSound.bad();
                     } break;
                 }
 
@@ -231,7 +240,7 @@ public class TextUI implements GameUI {
         return playerNum;
     }
 
-    static boolean setOption(GameOptions options, String key, String value) {
+    static boolean setOption(GameOptions options, TextUI ui, String key, String value) {
         switch(key) {
             case "win_score":
                 try { 
@@ -242,7 +251,6 @@ public class TextUI implements GameUI {
                 catch(Exception e) {
                     System.out.println("Invalid winning score value");
                     System.out.println("Enter an integer bigger than 0, or use 0 for endless mode");
-                    GameSound.bad();
                     return false;
                 }
             break;
@@ -255,7 +263,6 @@ public class TextUI implements GameUI {
                 } catch(Exception e) {
                     System.out.println("Invalid minimum word length value");
                     System.out.println("Enter an integer bigger than 0, or use 0 for no limit");
-                    GameSound.bad();
                     return false;
                 }
             break;
@@ -266,7 +273,6 @@ public class TextUI implements GameUI {
                     options.wordlistPath = value;
                 } catch (IOException e) {
                     System.out.println("Unable to use file: "+e.getMessage());
-                    GameSound.bad();
                     return false;
                 }
             break;
@@ -286,15 +292,65 @@ public class TextUI implements GameUI {
 
                 System.out.println("Unable to use the specified file");
                 System.out.println("Leave path empty if you wish for board to be randomly generated");
-                GameSound.bad();
                 return false;
             }
 
             default:
                 System.out.println("I don't know about that option");
                 System.out.println("TIP: use the part inside of square bracket in front of the option you wish to modify");
-                GameSound.bad();
                 return false;
+
+            case "auto_confirm": {
+                if (value.equalsIgnoreCase("yes")) {
+                    ui.autoConfirm = true;
+                    break;
+                }
+
+                if (value.equalsIgnoreCase("no")) {
+                    ui.autoConfirm = false;
+                    break;
+                }
+
+                System.out.printf("I'm not sure what you mean by '%s'\n", value);
+                System.out.println("Please specify either 'yes' or 'no'");
+                return false;
+            }
+
+            case "music": {
+                if (value.equalsIgnoreCase("yes")) {
+                    if (!ui.playMusic) {
+                        ui.playMusic = true;
+                        ui.audio = GameSound.lobby();
+                    }
+                    break;
+                }
+
+                if (value.equalsIgnoreCase("no")) {
+                    ui.playMusic = false;
+                    ui.audio.stop();
+                    break;
+                }
+
+                System.out.printf("I'm not sure what you mean by '%s'\n", value);
+                System.out.println("Please specify either 'yes' or 'no'");
+                return false;
+            }
+
+            case "sfx": {
+                if (value.equalsIgnoreCase("yes")) {
+                    ui.playSfx = true;
+                    break;
+                }
+
+                if (value.equalsIgnoreCase("no")) {
+                    ui.playSfx = false;
+                    break;
+                }
+
+                System.out.printf("I'm not sure what you mean by '%s'\n", value);
+                System.out.println("Please specify either 'yes' or 'no'");
+                return false;
+            }
         }
 
         return true;
@@ -310,15 +366,17 @@ public class TextUI implements GameUI {
         System.out.println("\n\t\t\t-- Press enter to continue --\n");
     }
 
-    private static void printMenuScreen(GameOptions options) throws IOException {
+    private static void printMenuScreen(GameOptions options, TextUI ui) throws IOException {
         String template = getAsset("asset/menu/head.txt");
 
-        System.out.printf(
-            template,
+        System.out.printf(template,
             options.winScore == 0 ? "Endless" : ""+options.winScore,
             options.minWordLength == 0 ? "No minimum word length limit" : ""+options.minWordLength,
             options.wordlistPath,
-            options.customBoard == null ? "Generated" : "Custom"
+            options.customBoard == null ? "Generated" : "Custom",
+            ui.autoConfirm ? "Yes" : "No",
+            ui.playMusic ? "Yes" : "No",
+            ui.playSfx ? "Yes" : "No"
         );
 
         String humanTemplate = getAsset("asset/menu/player_human.txt");
@@ -484,36 +542,38 @@ public class TextUI implements GameUI {
         switch (status) {
             case OK:
                 System.out.printf("%s played the word '%s' and gained +%d score!\n", currentPlayerName, move, scoreGained);
-                GameSound.ok();
+                if (this.playSfx) GameSound.ok();
             break;
             case SKIPPED:
                 System.out.println(currentPlayerName+" skipped their turn!");
-                GameSound.bad();
+                if (this.playSfx) GameSound.bad();
             break;
             case TOO_SHORT:
                 System.out.printf("Word too short! Minimal word length is %d\n", minWordLength);
-                GameSound.bad();
+                if (this.playSfx) GameSound.bad();
             break;
             case DUPLICATE:
                 System.out.println("This word was already played! Try a different one.");
-                GameSound.bad();
+                if (this.playSfx) GameSound.bad();
             break;
             case NOT_IN_DICT:
                 System.out.println("Word not in wordlist! Try a different one.");
-                GameSound.bad();
+                if (this.playSfx) GameSound.bad();
             break;
             case NOT_ON_BOARD:
                 System.out.println("Word does not exist on board! Try a different one");
-                GameSound.bad();
+                if (this.playSfx) GameSound.bad();
             break;
         }
 
-        System.out.println("\n==== Press enter to continue ====");
+        if (!this.autoConfirm) {
+            System.out.println("\n==== Press enter to continue ====");
+        }
     }
 
     public void results(List<Map.Entry<String, Integer>> leaderboard, int skips, int maxScore) {
         audio.stop();
-        audio = GameSound.results();
+        if (this.playMusic) audio = GameSound.results();
 
         Terminal.clearScreen();
         Terminal.hideCursor();
@@ -546,8 +606,20 @@ public class TextUI implements GameUI {
         System.out.println(getAsset("asset/results/tail.txt"));
     }
 
-    public void confirm() {
+    public void confirmForSure() {
         console.nextLine();
+    }
+
+    public void confirm() {
+        if (this.autoConfirm) {
+            try { Thread.sleep(1000); }
+            catch (InterruptedException e) {
+                e.printStackTrace();
+                System.exit(-1);
+            }
+        } else {
+            console.nextLine();
+        }
     }
 
     private static HashMap<String, String> assetCache = new HashMap<>();

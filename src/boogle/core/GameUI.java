@@ -22,6 +22,7 @@ public interface GameUI extends AutoCloseable {
     public void endTurn(TurnStatus status, String move, int scoreGained, int minWordLength);
 
     public void confirm();
+    public void confirmForSure();
 
     public void results(List<Map.Entry<String, Integer>> leaderboard, int skips, int maxScore);
 }

@@ -130,6 +130,6 @@ public class GameMaster {
         leaderboard.sort((a, b) -> b.getValue() - a.getValue());
 
         ui.results(leaderboard, totalSkips, maxScore);
-        ui.confirm();
+        ui.confirmForSure();
     }
 }
