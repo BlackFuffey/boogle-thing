@@ -568,7 +568,7 @@ public class TextUI implements GameUI {
             result = new String(
                 stream.readAllBytes(),
                 StandardCharsets.UTF_8
-            ).replaceFirst("\\n$", "");
+            ).replaceFirst("\\R$", "");
 
             stream.close();
 
