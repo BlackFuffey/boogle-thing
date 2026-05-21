@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.CompletableFuture;
 
 
 //i have no idea what im doing
@@ -73,6 +74,7 @@ public class GraphicalUI implements GameUI{
 
     //windows setup
     private void CreateMenu(GameOptions options){
+        MainMenu.windowSize(true);
         MainMenu.Created();
         MainMenu.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         MainMenu.AddPanel("MAIN", "LAYOUT", new BoxLayout(Game, BoxLayout.Y_AXIS));
@@ -86,7 +88,7 @@ public class GraphicalUI implements GameUI{
             if(Settings.isCreated()){
                 Settings.setVisible(true);
             }else{
-                OpenSettings(options);
+                CreateSettings(options);
             }
         });
         MainMenu.Panel("SETTINGS").AddButton("start", "Start", e ->{ready = startCheck(options);});
@@ -94,10 +96,9 @@ public class GraphicalUI implements GameUI{
 
     }
 
-
     //TODO: settings option
     //settings window
-    private void OpenSettings(GameOptions options){
+    private void CreateSettings(GameOptions options){
         Settings.Created();
         Settings.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         //layout
@@ -133,46 +134,48 @@ public class GraphicalUI implements GameUI{
         Settings.Panel("PLAYERLIST").Clear();
         Settings.Panel("PLAYERLIST").AddText("playerlist","Current Players: ");
         for(Player players: options.playerlist){
-            String name = players.getName();
-            Settings.AddPanel("PLAYERLIST", players.getName(), new FlowLayout());
+            //so names will not interfere with other panels
+            String name = players.toString();
+            Settings.AddPanel("PLAYERLIST", name, new FlowLayout());
             Settings.Panel(name).AddText(name+" number",Integer.toString(options.playerlist.indexOf(players)));
             Settings.Panel(name).AddText(name+" name",players.getName());
             Settings.Panel(name).AddText(name+" type", getPlayerType(players));
-            Settings.Panel(name).AddText(name+" level", getAILevel(players));
-
+            Settings.Panel(name).AddText(name+" level"," lvl "+getAILevel(players));
         }
+        Settings.Panel("PLAYERLIST").add(Box.createVerticalGlue());
         Settings.Panel("PLAYERLIST").revalidate();
         Settings.Panel("PLAYERLIST").repaint();
     }); 
-        
-        
         Settings.AddPanel("PLAYERLIST", "PLAYERSETTINGS", new BoxLayout(Settings,BoxLayout.X_AXIS));
-
-
         Settings.setVisible(true);
     }
 
+    //Game Window
+    private void CreateGameWindow(Gameboard board, List<Entry<String, Integer>> leaderboard, ArrayList<String> playedWords, String currentPlayerName){
+        Game.Created();
+        Game.AddPanel("MAIN", "LAYOUT", new GridBagLayout());
+        char[][] boardChar = board.board;
+        Game.AddPanel("LAYOUT", "BOARD",new GridLayout(boardChar.length,boardChar[0].length));
+        for(int row =0;row<boardChar.length;row++){
+            for(char letter:boardChar[row]){
+                Game.Panel("BOARD").AddText(Character.toString(letter),Character.toString(letter));
+            }
+        }
+
+    }
+
+
     public boolean lobby(GameOptions options) {
         ready=false;
+        CompletableFuture<Boolean> GameStart = new CompletableFuture<>(); 
         //title screen
         if(!MainMenu.isCreated()){
             CreateMenu(options);
         }
-        MainMenu.windowSize(true);
         MainMenu.setVisible(true);
         
 
         System.out.println("exited");
-        /*while(!ready){
-            //TODO: fix gitter
-            MainMenu.Panel("PLAYERLIST").Clear();
-            MainMenu.Panel("PLAYERLIST").AddText("players", "Players: ");
-            for(Player players: options.playerlist){
-                MainMenu.Panel("PLAYERLIST").AddText(players.getName(), players.getName()+", ");
-            }
-            MainMenu.Panel("PLAYERLIST").revalidate();
-            MainMenu.Panel("PLAYERLIST").repaint();
-        }*/
         if(ready){
             MainMenu.dispose();
             return true;
@@ -188,17 +191,6 @@ public class GraphicalUI implements GameUI{
     }
 
 
-//no idea why i decided to make this a standalone method
-    private void makeGrid(Gameboard board,Windows parent){
-        char[][] boardChar = board.board;
-        parent.AddPanel("LAYOUT", "BOARD",new GridLayout(boardChar.length,boardChar[0].length));
-        for(int row =0;row<boardChar.length;row++){
-            for(char letter:boardChar[row]){
-                parent.Panel("BOARD").AddText(Character.toString(letter),Character.toString(letter));
-            }
-        }
-    }
-
     private GridBagConstraints bagLayout(){
 
         return null;
@@ -207,11 +199,9 @@ public class GraphicalUI implements GameUI{
     @Override
     public void startTurn(Gameboard board, List<Entry<String, Integer>> leaderboard, ArrayList<String> playedWords, String currentPlayerName) {
         //game window construction
-        
-        Game.AddPanel("MAIN", "LAYOUT", new GridBagLayout());
-        makeGrid(board, Game);
-
-
+        if(Game.isCreated()){
+            CreateGameWindow(board, leaderboard, playedWords, currentPlayerName);
+        }
 
         Game.revalidate();
         Game.repaint();
