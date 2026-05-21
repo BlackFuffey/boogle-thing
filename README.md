@@ -18,7 +18,7 @@ make run-tui    # use TUI interface
 make run-gui    # use GUI interface
 ```
 
-**TIP**: If you are on Windows, you may have to run `chcp 65001` to set terminal locale to UTF-8 first.
+**TIP**: If you are on Windows, you may have to run `chcp 65001` to set terminal locale to UTF-8 first. Otherwise certain text may not display correctly.
 
 ### Bundling
 To bundle build results as jar, use
