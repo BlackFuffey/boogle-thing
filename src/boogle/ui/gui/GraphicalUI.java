@@ -110,8 +110,10 @@ public class GraphicalUI implements GameUI{
         switch(type){
             case "AI":    
                 options.playerlist.add(new AIPlayer(name, boogle.player.AIPlayer.Level.fromValue(Integer.parseInt(level))));
+            break;
             case "Human":
                 options.playerlist.add(new UIPlayer(name));
+            break;
             }
     }
     /**
