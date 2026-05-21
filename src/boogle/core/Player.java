@@ -39,7 +39,8 @@ public interface Player {
      * Requests the player’s next move. Implementations must not mutate their
      * internal state in this method; all state updates should be done in
      * {@link #updateGameState(String, String)}. Returning {@code null}
-     * indicates that the player wishes to skip this turn.
+     * indicates that the player wishes to skip this turn. Returning {@code "__defer"}
+     * indicates that the player wishes to defer decision to UI.
      *
      * @return the player’s chosen word, or {@code null} to skip the turn
      */

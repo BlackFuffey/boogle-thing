@@ -37,15 +37,10 @@ public class AIPlayer implements Player {
      * Each level is associated with an integer value used for user input.
      */
     public enum Level {
-        /** Always makes the optimal move and retains all possible words. */
         PERFECT(5),
-        /** Chooses randomly from the better half of possible words and keeps 70–90% of them. */
         SMART(4),
-        /** Retains 30–50% of possible words and picks uniformly at random. */
         GOOD(3),
-        /** Keeps 10–20% of words and tends to play shorter words randomly. */
         NORMAL(2),
-        /** Plays only a small subset of very short words and always makes the worst move. */
         DUMB(1);
 
         /** Numeric representation of the difficulty used for configuration. */
