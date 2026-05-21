@@ -12,38 +12,79 @@ import java.util.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Text‑mode implementation of {@link GameUI}. This class renders the Boogle
+ * lobby, game board and results in a terminal using ANSI escape codes.
+ * Players interact with the game through typed commands. The UI also
+ * supports optional sound effects and music via {@link boogle.sound.GameSound}
+ * and can automatically advance through confirmation prompts when
+ * {@link #autoConfirm} is enabled.
+ */
 public class TextUI implements GameUI {
     
+    /** Scanner used to read lines of input from the console. */
     private Scanner console = new Scanner(System.in);
+    /** Currently playing audio clip; used for background music and effects. */
     private Clip audio;
 
+    /**
+     * Constructs a new text UI and switches the terminal into an alternate
+     * screen buffer. The alternate buffer allows the game to draw over the
+     * existing terminal contents without losing them; when the UI exits the
+     * original screen will be restored.
+     */
     public TextUI() {
         Terminal.enterAltBuffer();
     }
     
     @Override
+    /**
+     * Cleans up the terminal by leaving the alternate buffer and ensuring
+     * that the cursor is visible again. This method should be called when
+     * the UI is no longer needed.
+     */
     public void close() {
         Terminal.exitAltBuffer();
         Terminal.showCursor();
     }
 
+    /** When {@code true} the UI skips confirmation prompts and sleeps briefly. */
+    private boolean autoConfirm = false;
+    /** When {@code true} background music is played during the lobby and game. */
+    private boolean playMusic = false;
+    /** When {@code true} sound effects are played on certain events. */
+    private boolean playSfx = false;
+
+    /**
+     * Presents the lobby and allows the user to configure players and
+     * options. The lobby consists of a title screen followed by a menu of
+     * commands. Users can add or remove players, rename them, change AI
+     * levels, move players, set the winning score and minimum word length,
+     * choose a dictionary file, supply a custom board or toggle auto
+     * confirmation, music and sound effects. Once the user starts the game
+     * (and at least one player has been added) the method returns {@code true}.
+     * Entering the {@code quit} command returns {@code false}.
+     *
+     * @param options mutable game configuration to populate
+     * @return {@code true} if the game should start, {@code false} to quit
+     */
     public boolean lobby(GameOptions options) {
-        if (audio != null)
-            audio.stop();
+        if (audio != null) audio.stop();
 
         try { for (;;) {
             Terminal.hideCursor();
             Terminal.clearScreen();
             printTitleScreen();
-            audio = GameSound.intro();
+            if (this.playMusic) audio = GameSound.intro();
+            else audio = GameSound.nothing();
             console.nextLine();
             audio.stop();
 
-            audio = GameSound.lobby();
+            if (this.playMusic) audio = GameSound.lobby();
 
             for(;;) {
                 Terminal.clearScreen();
-                printMenuScreen(options);
+                printMenuScreen(options, this);
                 Terminal.showCursor();
 
                 String[] cmd = padArray(console.nextLine().trim().split(" ", 2), 2, "");
@@ -52,9 +93,11 @@ public class TextUI implements GameUI {
                 switch(cmd[0].toLowerCase()) {
                     case "set": {
                         String[] args = padArray(cmd[1].split(" ", 2), 2, "");
-                        if (setOption(options, args[0], args[1])) {
+                        if (setOption(options, this, args[0], args[1])) {
                             System.out.println("Game option updated");
-                            GameSound.ok();
+                            if (this.playSfx) GameSound.ok();
+                        } else {
+                            if (this.playSfx) GameSound.bad();
                         }
                     } break;
 
@@ -64,19 +107,19 @@ public class TextUI implements GameUI {
                         if (args[0].toLowerCase().equals("human")) {
                             options.playerlist.add(new UIPlayer(args[1]));
                             System.out.printf("Human player '%s' is now player #%d", args[1], options.playerlist.size());
-                            GameSound.ok();
+                            if (this.playSfx) GameSound.ok();
                             break;
                         }
 
                         if (args[0].toLowerCase().equals("ai")) {
                             options.playerlist.add(new AIPlayer(args[1], AIPlayer.Level.NORMAL));
                             System.out.printf("AI player '%s' is now player #%d", args[1], options.playerlist.size());
-                            GameSound.ok();
+                            if (this.playSfx) GameSound.ok();
                             break;    
                         }
 
                         System.out.printf("Invalid player type '%s', use either 'human' or 'AI'", args[0]);
-                        GameSound.bad();
+                        if (this.playSfx) GameSound.bad();
                     } break;
                         
                     case "rename": {
@@ -86,13 +129,13 @@ public class TextUI implements GameUI {
 
                         if (target == null) {
                          System.out.printf("Invalid player number '%s'\n", args[0]);
-                            GameSound.bad();
+                            if (this.playSfx) GameSound.bad();
                             break;
                         }
 
                         target.setName(args[1]);
                         System.out.println("Name updated");
-                        GameSound.ok();
+                        if (this.playSfx) GameSound.ok();
                     } break;
 
                     case "level": {
@@ -102,13 +145,13 @@ public class TextUI implements GameUI {
 
                         if (target == null) {
                             System.out.printf("Invalid player number '%s'\n", args[0]);
-                            GameSound.bad();
+                            if (this.playSfx) GameSound.bad();
                             break;
                         }
 
                         if (!(target instanceof AIPlayer)) {
                             System.out.println("Specified player is not an AI");
-                            GameSound.bad();
+                            if (this.playSfx) GameSound.bad();
                             break;
                         }
 
@@ -117,10 +160,10 @@ public class TextUI implements GameUI {
                                 Integer.parseInt(args[1])
                             ));
                             System.out.println("AI level updated");
-                            GameSound.ok();
+                            if (this.playSfx) GameSound.ok();
                         } catch (Exception e) {
                             System.out.println("Invalid AI level, use an integer between 1-5");
-                            GameSound.bad();
+                            if (this.playSfx) GameSound.bad();
                         }
                     } break;
 
@@ -131,14 +174,14 @@ public class TextUI implements GameUI {
                         try { from = parsePlayerNum(options.playerlist, args[0]); }
                         catch (Exception e) {
                             System.out.println("Invalid target player number");
-                            GameSound.bad();
+                            if (this.playSfx) GameSound.bad();
                             break;
                         }
 
                         try { to = parsePlayerNum(options.playerlist, args[1]); }
                         catch (Exception e) {
                             System.out.println("Invalid destination player number");
-                            GameSound.bad();
+                            if (this.playSfx) GameSound.bad();
                             break;
                         }
 
@@ -147,7 +190,7 @@ public class TextUI implements GameUI {
                         options.playerlist.remove(from);
                         options.playerlist.add(to, target);
                         System.out.println("Player moved");
-                        GameSound.ok();
+                        if (this.playSfx) GameSound.ok();
                     } break;
                         
                     case "remove": {
@@ -157,35 +200,38 @@ public class TextUI implements GameUI {
                             int target = parsePlayerNum(options.playerlist, args[0]);
                             options.playerlist.remove(target);
                             System.out.println("Player removed");
-                            GameSound.ok();
+                            if (this.playSfx) GameSound.ok();
                         } catch (Exception e) {
                             System.out.println("Invalid target player number");
-                            GameSound.bad();
+                            if (this.playSfx) GameSound.bad();
                         }
                     } break;
 
                     case "start": {
                         if (options.playerlist.size() != 0) {
                             audio.stop();
-                            audio = GameSound.ingame();
-                            GameSound.ok();
+                            if (this.playMusic) audio = GameSound.ingame();
+                            if (this.playSfx) GameSound.ok();
                             return true;
                         }
                         System.out.println("Cannot start game with 0 players!");
-                        GameSound.bad();
+                        if (this.playSfx) GameSound.bad();
                     } break;
 
-                    case "quit": { GameSound.ok(); return false; }
+                    case "quit": { 
+                        if (this.playSfx) GameSound.ok();
+                        return false; 
+                    }
 
                     case "help": {
                         Terminal.clearScreen();
                         printTutorial();
-                        GameSound.ok();
+                        if (this.playSfx) GameSound.ok();
                     } break;
 
                     default: {
                         System.out.printf("I don't understand '%s'.\nSee the 'Commands' section on top for list of commands.\n", cmd[0]);
-                        GameSound.bad();
+                        if (this.playSfx) GameSound.bad();
                     } break;
                 }
 
@@ -199,6 +245,18 @@ public class TextUI implements GameUI {
         }
     }
 
+    /**
+     * Returns a copy of the provided array padded to the specified length. If
+     * {@code arr.length} is less than {@code padLength} then new elements
+     * equal to {@code padWith} are appended to the result. Otherwise the
+     * original array is returned unchanged.
+     *
+     * @param <T> component type of the array
+     * @param arr the array to pad
+     * @param padLength desired minimum length of the returned array
+     * @param padWith element value used to pad the array
+     * @return an array of length at least {@code padLength}
+     */
     static <T> T[] padArray(T[] arr, int padLength, T padWith) {
         if (arr.length >= padLength)
             return arr;
@@ -212,6 +270,17 @@ public class TextUI implements GameUI {
         return padded;
     }
 
+    /**
+     * Attempts to resolve a player reference from a string. The string may
+     * start with an optional {@code 'p'} followed by a 1‑based index. If the
+     * index is invalid or out of bounds {@code null} is returned rather than
+     * throwing an exception.
+     *
+     * @param playerlist list of players
+     * @param playerNumStr string representation of a player number (e.g. {@code "p1"})
+     * @return the {@link Player} at the specified position, or {@code null} if
+     *         the index could not be parsed
+     */
     static Player resolvePlayerNum(List<Player> playerlist, String playerNumStr) {
         try {
             return playerlist.get(parsePlayerNum(playerlist, playerNumStr));
@@ -220,6 +289,17 @@ public class TextUI implements GameUI {
         }
     }
 
+    /**
+     * Parses a string of the form {@code "p1"}, {@code "1"}, etc. into a
+     * zero‑based player index. The returned index is validated to ensure it
+     * refers to a valid element of {@code playerlist}; otherwise an
+     * {@link IllegalArgumentException} is thrown.
+     *
+     * @param playerlist list of players
+     * @param playerNumStr string representation of the player number
+     * @return zero‑based index into {@code playerlist}
+     * @throws IllegalArgumentException if the parsed index is out of range
+     */
     static int parsePlayerNum(List<Player> playerlist, String playerNumStr) {
         playerNumStr = playerNumStr.toLowerCase();
 
@@ -231,7 +311,22 @@ public class TextUI implements GameUI {
         return playerNum;
     }
 
-    static boolean setOption(GameOptions options, String key, String value) {
+    /**
+     * Modifies an option based on a key/value pair. Supported keys include
+     * {@code win_score}, {@code min_word_length}, {@code wordlist},
+     * {@code board}, {@code auto_confirm}, {@code music} and {@code sfx}.
+     * Validates the supplied value and updates {@code options} or the
+     * UI instance accordingly. If a value is invalid an explanatory message
+     * is printed and the method returns {@code false}.
+     *
+     * @param options game options to update
+     * @param ui reference to the UI for toggling behaviours and sound
+     * @param key option identifier
+     * @param value new value for the option
+     * @return {@code true} if the option was successfully updated; {@code false}
+     *         if validation failed
+     */
+    static boolean setOption(GameOptions options, TextUI ui, String key, String value) {
         switch(key) {
             case "win_score":
                 try { 
@@ -242,7 +337,6 @@ public class TextUI implements GameUI {
                 catch(Exception e) {
                     System.out.println("Invalid winning score value");
                     System.out.println("Enter an integer bigger than 0, or use 0 for endless mode");
-                    GameSound.bad();
                     return false;
                 }
             break;
@@ -255,7 +349,6 @@ public class TextUI implements GameUI {
                 } catch(Exception e) {
                     System.out.println("Invalid minimum word length value");
                     System.out.println("Enter an integer bigger than 0, or use 0 for no limit");
-                    GameSound.bad();
                     return false;
                 }
             break;
@@ -266,7 +359,6 @@ public class TextUI implements GameUI {
                     options.wordlistPath = value;
                 } catch (IOException e) {
                     System.out.println("Unable to use file: "+e.getMessage());
-                    GameSound.bad();
                     return false;
                 }
             break;
@@ -286,39 +378,115 @@ public class TextUI implements GameUI {
 
                 System.out.println("Unable to use the specified file");
                 System.out.println("Leave path empty if you wish for board to be randomly generated");
-                GameSound.bad();
                 return false;
             }
 
             default:
                 System.out.println("I don't know about that option");
                 System.out.println("TIP: use the part inside of square bracket in front of the option you wish to modify");
-                GameSound.bad();
                 return false;
+
+            case "auto_confirm": {
+                if (value.equalsIgnoreCase("yes")) {
+                    ui.autoConfirm = true;
+                    break;
+                }
+
+                if (value.equalsIgnoreCase("no")) {
+                    ui.autoConfirm = false;
+                    break;
+                }
+
+                System.out.printf("I'm not sure what you mean by '%s'\n", value);
+                System.out.println("Please specify either 'yes' or 'no'");
+                return false;
+            }
+
+            case "music": {
+                if (value.equalsIgnoreCase("yes")) {
+                    if (!ui.playMusic) {
+                        ui.playMusic = true;
+                        ui.audio = GameSound.lobby();
+                    }
+                    break;
+                }
+
+                if (value.equalsIgnoreCase("no")) {
+                    ui.playMusic = false;
+                    ui.audio.stop();
+                    break;
+                }
+
+                System.out.printf("I'm not sure what you mean by '%s'\n", value);
+                System.out.println("Please specify either 'yes' or 'no'");
+                return false;
+            }
+
+            case "sfx": {
+                if (value.equalsIgnoreCase("yes")) {
+                    ui.playSfx = true;
+                    break;
+                }
+
+                if (value.equalsIgnoreCase("no")) {
+                    ui.playSfx = false;
+                    break;
+                }
+
+                System.out.printf("I'm not sure what you mean by '%s'\n", value);
+                System.out.println("Please specify either 'yes' or 'no'");
+                return false;
+            }
         }
 
         return true;
     }
 
+    /**
+     * Prints the tutorial text to standard output. The tutorial describes the
+     * available commands and how to play the game. The content is loaded from
+     * a text asset bundled with the application.
+     *
+     * @throws IOException if the asset cannot be read
+     */
     private static void printTutorial() throws IOException {
         System.out.println(getAsset("asset/menu/tutorial.txt"));
     }
 
+    /**
+     * Displays the title screen logo and waits for the user to press enter.
+     * The logo is loaded from an embedded text asset.
+     *
+     * @throws IOException if the asset cannot be read
+     */
     private static void printTitleScreen() throws IOException {
         System.out.println(getAsset("asset/logo.txt"));
 
         System.out.println("\n\t\t\t-- Press enter to continue --\n");
     }
 
-    private static void printMenuScreen(GameOptions options) throws IOException {
+    /**
+     * Renders the main lobby menu. This method prints the current game
+     * options, the list of players with their indices, names and AI levels,
+     * and a list of available commands. Asset templates are used to lay out
+     * the menu consistently.
+     *
+     * @param options current game options
+     * @param ui reference to the current UI used to query flags such as
+     *           {@link #autoConfirm}
+     * @throws IOException if any of the menu assets cannot be read
+     */
+    private static void printMenuScreen(GameOptions options, TextUI ui) throws IOException {
         String template = getAsset("asset/menu/head.txt");
 
-        System.out.printf(
-            template,
+        System.out.printf(template,
             options.winScore == 0 ? "Endless" : ""+options.winScore,
             options.minWordLength == 0 ? "No minimum word length limit" : ""+options.minWordLength,
             options.wordlistPath,
-            options.customBoard == null ? "Generated" : "Custom"
+            options.customBoard == null ? "Generated" : "Custom",
+            ui.autoConfirm ? "Yes" : "No",
+            ui.playMusic ? "Yes" : "No",
+            ui.playSfx ? "Yes" : "No"
         );
 
         String humanTemplate = getAsset("asset/menu/player_human.txt");
@@ -343,8 +511,21 @@ public class TextUI implements GameUI {
         System.out.print("\n[38;2;255;176;0m[1mEnter command:[0m ");
     }
 
+    /** Name of the player whose turn is currently being displayed. */
     private String currentPlayerName;
 
+    /**
+     * Draws the game board, score table and list of played words for the
+     * current turn. The display uses unicode box‑drawing characters stored
+     * in assets to render a tidy table. This method also records the
+     * {@code currentPlayerName} so that subsequent calls to
+     * {@link #active()} and {@link #passive()} can reference it.
+     *
+     * @param gameboard current game board
+     * @param leaderboard players and their scores in descending order
+     * @param playedWords list of words that have been successfully played
+     * @param currentPlayerName name of the player who is about to move
+     */
     public void startTurn(Gameboard gameboard, List<Map.Entry<String, Integer>> leaderboard, ArrayList<String> playedWords, String currentPlayerName) {
         Terminal.hideCursor();
         StringBuilder boardDisplayBuilder = new StringBuilder();
@@ -461,6 +642,15 @@ public class TextUI implements GameUI {
         this.currentPlayerName = currentPlayerName;
     }
 
+    /**
+     * Prompts the human player to enter a word or to skip their turn. The
+     * prompt displays the player’s name and waits for input. The string
+     * {@code "-skip"} (case‑insensitive) is interpreted as a skip and
+     * causes {@code null} to be returned. All other input is returned
+     * verbatim to the game engine.
+     *
+     * @return the word entered by the user, or {@code null} to skip
+     */
     public String active() {
         Terminal.showCursor();
         System.out.println("\nEnter your word, or '-skip' to skip this turn");
@@ -475,45 +665,77 @@ public class TextUI implements GameUI {
         return input;
     }
 
+    /**
+     * Informs spectators that the current player (an AI) is thinking. A simple
+     * message is printed to the console. Control returns immediately so the
+     * game engine can proceed to ask the AI for its move.
+     */
     public void passive() {
         System.out.printf("\n%s is thinking...\n", currentPlayerName);
     }
 
+    /**
+     * Reports the result of a player’s move. Depending on {@code status}
+     * this method prints an appropriate message (e.g. success, too short,
+     * duplicate, not in dictionary or not on board) and plays a sound if
+     * effects are enabled. When the turn is successful the gained score is
+     * shown. If auto confirmation is disabled the user is prompted to press
+     * enter before continuing to the next turn.
+     *
+     * @param status outcome of the move
+     * @param move the word that was played or attempted
+     * @param scoreGained number of points awarded for the move
+     * @param minWordLength minimum word length enforced by the game
+     */
     public void endTurn(TurnStatus status, String move, int scoreGained, int minWordLength) {
         Terminal.hideCursor();
         switch (status) {
             case OK:
                 System.out.printf("%s played the word '%s' and gained +%d score!\n", currentPlayerName, move, scoreGained);
-                GameSound.ok();
+                if (this.playSfx) GameSound.ok();
             break;
             case SKIPPED:
                 System.out.println(currentPlayerName+" skipped their turn!");
-                GameSound.bad();
+                if (this.playSfx) GameSound.bad();
             break;
             case TOO_SHORT:
                 System.out.printf("Word too short! Minimal word length is %d\n", minWordLength);
-                GameSound.bad();
+                if (this.playSfx) GameSound.bad();
             break;
             case DUPLICATE:
                 System.out.println("This word was already played! Try a different one.");
-                GameSound.bad();
+                if (this.playSfx) GameSound.bad();
             break;
             case NOT_IN_DICT:
                 System.out.println("Word not in wordlist! Try a different one.");
-                GameSound.bad();
+                if (this.playSfx) GameSound.bad();
             break;
             case NOT_ON_BOARD:
                 System.out.println("Word does not exist on board! Try a different one");
-                GameSound.bad();
+                if (this.playSfx) GameSound.bad();
             break;
         }
 
-        System.out.println("\n==== Press enter to continue ====");
+        if (!this.autoConfirm) {
+            System.out.println("\n==== Press enter to continue ====");
+        }
     }
 
+    /**
+     * Displays the final scoreboard and a whimsical “calories” summary. Each
+     * player’s name is truncated to fit within the results template and their
+     * score is shown along with the percentage of the maximum possible score
+     * achieved. The number of skipped turns is multiplied by ten to derive a
+     * calorie total purely for fun. Music may be played during the results
+     * screen if enabled.
+     *
+     * @param leaderboard final ranking of players by score
+     * @param skips total number of skipped turns
+     * @param maxScore maximum score obtainable on the generated board
+     */
     public void results(List<Map.Entry<String, Integer>> leaderboard, int skips, int maxScore) {
         audio.stop();
-        audio = GameSound.results();
+        if (this.playMusic) audio = GameSound.results();
 
         Terminal.clearScreen();
         Terminal.hideCursor();
@@ -546,12 +768,45 @@ public class TextUI implements GameUI {
         System.out.println(getAsset("asset/results/tail.txt"));
     }
 
-    public void confirm() {
+    /**
+     * Blocks until the user presses enter. Used after the results screen to
+     * prevent the UI from closing immediately.
+     */
+    public void confirmForSure() {
         console.nextLine();
     }
 
+    /**
+     * Pauses the UI between turns. When {@link #autoConfirm} is enabled
+     * execution sleeps for one second; otherwise the user must press enter
+     * before the next turn proceeds. Any {@link InterruptedException} is
+     * converted into a runtime error.
+     */
+    public void confirm() {
+        if (this.autoConfirm) {
+            try { Thread.sleep(1000); }
+            catch (InterruptedException e) {
+                e.printStackTrace();
+                System.exit(-1);
+            }
+        } else {
+            console.nextLine();
+        }
+    }
+
+    /** Cache of loaded asset contents keyed by their classpath location. */
     private static HashMap<String, String> assetCache = new HashMap<>();
 
+    /**
+     * Loads a text asset from the classpath and returns its contents as a
+     * {@link String}. Assets are cached after the first load to avoid
+     * repeated I/O. A trailing newline is removed to facilitate embedding
+     * assets into format strings. When loading fails the method prints an
+     * error and exits the JVM with a negative status.
+     *
+     * @param path classpath relative path to the asset
+     * @return the contents of the asset as a string
+     */
     private static String getAsset(String path) {
         try {
             String result = assetCache.get(path);
