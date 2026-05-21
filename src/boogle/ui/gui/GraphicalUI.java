@@ -108,7 +108,7 @@ public class GraphicalUI implements GameUI{
      */
     private void validatePlayer(GameOptions options,String type, String name, String level){
         switch(type){
-            case "Ai":    
+            case "AI":    
                 options.playerlist.add(new AIPlayer(name, boogle.player.AIPlayer.Level.fromValue(Integer.parseInt(level))));
             case "Human":
                 options.playerlist.add(new UIPlayer(name));
@@ -191,7 +191,6 @@ public class GraphicalUI implements GameUI{
         Settings.Panel("PLAYERS").AddTextField("PlayerSettingName", 10);
         Settings.Panel("PLAYERS").AddText("settingsailevel", "ai level (ignored if human):");
         Settings.Panel("PLAYERS").AddComboBox("PlayerSettingLevel",new String[]{"1","2","3","4","5"});
-        Settings.Panel("PLAYERLIST").AddText("playerlist","Current Players: ");
         Settings.Panel("PLAYERS").AddButton("PlayerSettingSubmit","Submit",e->{
             validatePlayer(options,
             Settings.Panel("PLAYERS").GetItemText("PlayerSettingType"),
@@ -208,6 +207,7 @@ public class GraphicalUI implements GameUI{
             Settings.Panel(name).AddText(name+" name",players.getName());
             Settings.Panel(name).AddText(name+" type", getPlayerType(players));
             Settings.Panel(name).AddText(name+" level"," lvl "+getAILevel(players));
+            System.out.println(players.getName());
         }
         Settings.Panel("PLAYERLIST").add(Box.createVerticalGlue());
         Settings.Panel("PLAYERLIST").revalidate();
