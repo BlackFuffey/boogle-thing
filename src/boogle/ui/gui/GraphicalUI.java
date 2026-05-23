@@ -10,7 +10,10 @@ import javax.sound.sampled.Clip;
 import javax.swing.*;
 
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -29,6 +32,10 @@ public class GraphicalUI implements GameUI{
     private boolean ready=false;
     /** Currently playing audio clip, used to manage music and sound effects. */
     private Clip audio;
+
+    private String CurrentPlayer;
+
+    boolean autoConfirm;
 
     /*
     naming convention:
@@ -75,7 +82,7 @@ public class GraphicalUI implements GameUI{
      */
     private String getPlayerType(Player player){
         if(player instanceof AIPlayer){
-            return "Ai";
+            return "AI";
         }
         else if(player instanceof UIPlayer){
             return "Human";
@@ -116,16 +123,6 @@ public class GraphicalUI implements GameUI{
             break;
             }
     }
-    /**
-     * Placeholder method for launching the game window. The current
-     * implementation always returns {@code false} because the graphical UI is
-     * incomplete.
-     *
-     * @return currently always {@code false}
-     */
-    private boolean gameStart(){
-        return false;
-    }
 
     //windows setup
     /**
@@ -135,7 +132,7 @@ public class GraphicalUI implements GameUI{
      *
      * @param options configuration options used to populate the player list
      */
-    private void CreateMenu(GameOptions options){
+    private void CreateMenu(GameOptions options,CompletableFuture<Boolean> start){
         MainMenu.windowSize(true);
         MainMenu.Created();
         MainMenu.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -153,12 +150,51 @@ public class GraphicalUI implements GameUI{
                 CreateSettings(options);
             }
         });
-        MainMenu.Panel("SETTINGS").AddButton("start", "Start", e ->{ready = startCheck(options);});
+        MainMenu.Panel("SETTINGS").AddButton("start", "Start", e ->{ready = startCheck(options);
+            start.complete(true);
+        });
         MainMenu.Panel("SETTINGS").AddButton( "quit","Quit",e ->{System.exit(0);});
 
     }
 
     //TODO: settings option
+    //settings button methods
+    //update playerlist
+    @SuppressWarnings("unchecked") //combobox warnings got annoying
+    private void reEvalPlayerlist(GameOptions options){
+        Settings.Panel("PLAYERLIST").Clear();
+        ((JComboBox<?>)Settings.Panel("REMOVE").GetItem("Players")).removeAllItems();;
+        Settings.Panel("PLAYERLIST").AddText("playerlist","Current Players: ");
+        int i=0;
+        for(Player players: options.playerlist){
+            //so names will not interfere with other panels
+            String name = players.toString();
+            Settings.AddPanel("PLAYERLIST", name, new FlowLayout());
+            Settings.Panel(name).AddText(name+" number",Integer.toString(options.playerlist.indexOf(players)+1));
+            Settings.Panel(name).AddText(name+" name",players.getName());
+            Settings.Panel(name).AddText(name+" type", getPlayerType(players));
+            Settings.Panel(name).AddText(name+" level"," lvl "+getAILevel(players));
+            ((JComboBox<String>)Settings.Panel("REMOVE").GetItem("Players")).addItem(Integer.toString(i+1));
+            i++;
+        }
+        if(i==0){
+            ((JComboBox<?>)Settings.Panel("REMOVE").GetItem("Players")).addItem(null);
+        }
+        ((JComboBox<?>)Settings.Panel("REMOVE").GetItem("Players")).setSelectedIndex(0);
+        Settings.Panel("PLAYERLIST").add(Box.createVerticalGlue());
+        Settings.Panel("PLAYERLIST").revalidate();
+        Settings.Panel("PLAYERLIST").repaint();
+    }
+    private String[] playlistString(GameOptions options){
+        if(options.playerlist.size()>0){
+        String[] playerlist = new String[options.playerlist.size()];
+        Arrays.setAll(playerlist, i -> Integer.toString(i));
+        return playerlist;}
+        else{
+            return new String[1];
+        }
+    }    
+
     //settings window
     /**
      * Opens the settings dialog allowing users to add players and adjust
@@ -199,29 +235,41 @@ public class GraphicalUI implements GameUI{
             Settings.Panel("PLAYERS").GetItemText("PlayerSettingName"),
             Settings.Panel("PLAYERS").GetItemText("PlayerSettingLevel")
         );
-        Settings.Panel("PLAYERLIST").Clear();
-        Settings.Panel("PLAYERLIST").AddText("playerlist","Current Players: ");
-        for(Player players: options.playerlist){
-            //so names will not interfere with other panels
-            String name = players.toString();
-            Settings.AddPanel("PLAYERLIST", name, new FlowLayout());
-            Settings.Panel(name).AddText(name+" number",Integer.toString(options.playerlist.indexOf(players)));
-            Settings.Panel(name).AddText(name+" name",players.getName());
-            Settings.Panel(name).AddText(name+" type", getPlayerType(players));
-            Settings.Panel(name).AddText(name+" level"," lvl "+getAILevel(players));
-            System.out.println(players.getName());
-        }
-        Settings.Panel("PLAYERLIST").add(Box.createVerticalGlue());
-        Settings.Panel("PLAYERLIST").revalidate();
-        Settings.Panel("PLAYERLIST").repaint();
-    }); 
-        Settings.AddPanel("PLAYERLIST", "PLAYERSETTINGS", new BoxLayout(Settings,BoxLayout.X_AXIS));
+        reEvalPlayerlist(options);
+        }); 
+        Settings.AddPanel("SETTINGS", "REMOVE",new FlowLayout());
+        Settings.Panel("REMOVE").AddText("remove player","Remove Player");
+        Settings.Panel("REMOVE").AddComboBox("Players",playlistString(options));
+        Settings.Panel("REMOVE").AddButton("removeConfirm", "REMOVE",e->{
+            try{
+                options.playerlist.remove(Integer.parseInt(Settings.Panel("REMOVE").GetItemText("Players"))-1);
+                reEvalPlayerlist(options);
+            }catch(NullPointerException n){
+                reEvalPlayerlist(options);
+            }
+        });
         Settings.setVisible(true);
     }
 
     //Game Window
     private void CreateGameWindow(Gameboard board, List<Entry<String, Integer>> leaderboard, ArrayList<String> playedWords, String currentPlayerName){
         Game.Created();
+        Game.windowSize(true);
+        Game.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        //close behavior
+        //yes i copypasted this (i am not figuring this out on my own)
+        Game.addWindowListener(new WindowAdapter() {
+            public void windowClosing(WindowEvent e) {
+                int confirmed = JOptionPane.showConfirmDialog(Game, 
+                    "Closing Window Will exit program\nPlease use exit button to exit Current Game", "Exit Confirmation",
+                    JOptionPane.YES_NO_OPTION);
+
+                if (confirmed == JOptionPane.YES_OPTION) {
+                    System.exit(0);
+                }
+            }
+        });
+
         Game.AddPanel("MAIN", "LAYOUT", new GridBagLayout());
         char[][] boardChar = board.board;
         Game.AddPanel("LAYOUT", "BOARD",new GridLayout(boardChar.length,boardChar[0].length));
@@ -230,7 +278,13 @@ public class GraphicalUI implements GameUI{
                 Game.Panel("BOARD").AddText(Character.toString(letter),Character.toString(letter));
             }
         }
-
+        Game.AddPanel("LAYOUT","STATUS",new FlowLayout(),new GridBagConstraints(
+            0,0,5,5,0,0,
+            GridBagConstraints.NORTHEAST,
+            GridBagConstraints.NONE,
+            new Insets(0, 0, 0, 0),
+            0,0
+        ));
     }
 
 
@@ -250,22 +304,24 @@ public class GraphicalUI implements GameUI{
         CompletableFuture<Boolean> GameStart = new CompletableFuture<>(); 
         //title screen
         if(!MainMenu.isCreated()){
-            CreateMenu(options);
+            CreateMenu(options,GameStart);
         }
         MainMenu.setVisible(true);
         
 
-        System.out.println("exited");
-        if(ready){
-            MainMenu.dispose();
-            return true;
-        }else{
-            System.out.println("bruh");
-            return false;
+        try {
+            if(GameStart.get()){
+                MainMenu.dispose();
+                return true;
+            }else{
+                return false;
+            }
+        } catch (Exception e) {
+
         }
+        return false;
 
     }
-    @Override
     /**
      * No‑op for the graphical UI. Resources such as windows and audio clips
      * are disposed elsewhere.
@@ -274,39 +330,6 @@ public class GraphicalUI implements GameUI{
         
     }
 
-
-//no idea why i decided to make this a standalone method
-    /**
-     * Populates a panel with a grid of labels representing the letters on the
-     * provided {@link Gameboard}. The parent {@link Windows} must already
-     * have a layout suitable for the grid. Each character in the board is
-     * rendered into its own label.
-     *
-     * @param board the current game board to display
-     * @param parent the parent window in which to add the grid panels
-     */
-    private void makeGrid(Gameboard board,Windows parent){
-        char[][] boardChar = board.board;
-        parent.AddPanel("LAYOUT", "BOARD",new GridLayout(boardChar.length,boardChar[0].length));
-        for(int row =0;row<boardChar.length;row++){
-            for(char letter:boardChar[row]){
-                parent.Panel("BOARD").AddText(Character.toString(letter),Character.toString(letter));
-            }
-        }
-    }
-
-    /**
-     * Placeholder for creating {@link GridBagConstraints}. Not currently
-     * implemented.
-     *
-     * @return always {@code null}
-     */
-    private GridBagConstraints bagLayout(){
-
-        return null;
-    }
-
-    @Override
     /**
      * Displays the game window for the current turn. In the prototype the
      * method constructs a panel containing the letter grid and shows it.
@@ -319,25 +342,45 @@ public class GraphicalUI implements GameUI{
      */
     public void startTurn(Gameboard board, List<Entry<String, Integer>> leaderboard, ArrayList<String> playedWords, String currentPlayerName) {
         //game window construction
-        if(Game.isCreated()){
+        if(!Game.isCreated()){
             CreateGameWindow(board, leaderboard, playedWords, currentPlayerName);
         }
+        CurrentPlayer = currentPlayerName;
 
         Game.revalidate();
         Game.repaint();
         Game.setVisible(true);
 
     }
-    @Override
+
     /**
      * Called when an AI player is thinking. Not implemented in the graphical
      * UI; throws {@link UnsupportedOperationException}.
      */
     public void passive() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'passive'");
+        Game.Panel("STATUS").Clear();
+        Game.Panel("STATUS").AddText("CurrentAI", "Current AI "+CurrentPlayer+" is thinking");
+        if(this.autoConfirm){
+            try { Thread.sleep(1000); }
+            catch (InterruptedException e) {
+                e.printStackTrace();
+                System.exit(-1);
+            }
+        }else{
+            CompletableFuture<Boolean> submit = new CompletableFuture<>();
+            try{
+                Game.Panel("STATUS").AddButton("SUBMIT", "SUBMIT", e->{submit.complete(true);});
+                if(submit.get()){
+                    return;
+                }
+            }catch(Exception e){
+                
+            }
+        }
+
     }
-    @Override
+
+
     /**
      * Requests input from a human player. Not implemented in the graphical
      * UI; throws {@link UnsupportedOperationException}.
@@ -345,10 +388,21 @@ public class GraphicalUI implements GameUI{
      * @return the entered word (never returns in current implementation)
      */
     public String active() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'active'");
+        CompletableFuture<String> Input = new CompletableFuture<>();
+
+        Game.Panel("STATUS").Clear();
+        Game.Panel("STATUS").AddTextField("UserInput", 10);
+        Game.Panel("STATUS").AddButton("Submit","Submit",e->{
+            Input.complete(Game.Panel("STATUS").GetItemText("UserInput"));
+        });
+        
+        try{
+            return Input.get();
+        }catch(Exception e){
+        }
+        return "";
     }
-    @Override
+    
     /**
      * Reports the outcome of a player’s move. Not implemented in the
      * graphical UI; throws {@link UnsupportedOperationException}.
@@ -357,27 +411,28 @@ public class GraphicalUI implements GameUI{
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'endTurn'");
     }
-    @Override
+    
     /**
      * Waits for the user to acknowledge the end of a turn. Not implemented
      * in the graphical UI; throws {@link UnsupportedOperationException}.
      */
     public void confirm() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'confirm'");
+        
     }
-    @Override
+    
     public void confirmForSure() {
         confirm();
     }
 
-    @Override
+    
     /**
      * Displays the final results screen. Not implemented in the graphical UI;
      * throws {@link UnsupportedOperationException}.
      */
     public void results(List<Entry<String, Integer>> leaderboard, int skips, int maxScore) {
         // TODO Auto-generated method stub
+
+
         throw new UnsupportedOperationException("Unimplemented method 'results'");
     }
     

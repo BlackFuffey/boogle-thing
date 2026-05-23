@@ -179,27 +179,70 @@ public class Windows extends JFrame{
                 case "C":
                     this.setAlignmentX(CENTER_ALIGNMENT);
                     this.setAlignmentY(CENTER_ALIGNMENT);
+                    break;
                 case "NW":
                     this.setAlignmentX(TOP_ALIGNMENT);
                     this.setAlignmentY(RIGHT_ALIGNMENT);
+                    break;
                 case "N":
                     this.setAlignmentX(CENTER_ALIGNMENT);
                     this.setAlignmentY(TOP_ALIGNMENT);
+                    break;
                 case "NE":
                     this.setAlignmentX(TOP_ALIGNMENT);
                     this.setAlignmentY(LEFT_ALIGNMENT);
+                    break;
                 case "E":
                 case "SE":
                 case "S":
                     this.setAlignmentX(CENTER_ALIGNMENT);
                     this.setAlignmentY(BOTTOM_ALIGNMENT);
+                    break;
                 case "SW":
                 case "W":
                     this.setAlignmentX(LEFT_ALIGNMENT);
                     this.setAlignmentY(CENTER_ALIGNMENT);
+                    break;
                 default:
                     return;
             }
+        }
+
+
+        //set component anchor too (just use getItem() in parameter)
+        public void setAnchor(JComponent item, String alignment){
+            try{
+            switch (alignment.toUpperCase()) {
+                case "C":
+                    item.setAlignmentX(CENTER_ALIGNMENT);
+                    item.setAlignmentY(CENTER_ALIGNMENT);
+                    break;
+                case "NW":
+                    item.setAlignmentX(TOP_ALIGNMENT);
+                    item.setAlignmentY(RIGHT_ALIGNMENT);
+                    break;
+                case "N":
+                    item.setAlignmentX(CENTER_ALIGNMENT);
+                    item.setAlignmentY(TOP_ALIGNMENT);
+                    break;
+                case "NE":
+                    item.setAlignmentX(TOP_ALIGNMENT);
+                    item.setAlignmentY(LEFT_ALIGNMENT);
+                    break;
+                case "E":
+                case "SE":
+                case "S":
+                    item.setAlignmentX(CENTER_ALIGNMENT);
+                    item.setAlignmentY(BOTTOM_ALIGNMENT);
+                    break;
+                case "SW":
+                case "W":
+                    item.setAlignmentX(LEFT_ALIGNMENT);
+                    item.setAlignmentY(CENTER_ALIGNMENT);
+                    break;
+                default:
+                    return;
+            }}catch(NullPointerException e){}
         }
 
         //accessor
@@ -231,6 +274,31 @@ public class Windows extends JFrame{
                 return ((JComboBox<?>) items.get(component)).getSelectedItem().toString();
             }
             return null;
+        }
+
+
+        //gridbaglayout constraints
+        /*
+        defaults for copy paste:
+        gridx = RELATIVE;
+        gridy = RELATIVE;
+        gridwidth = 1;
+        gridheight = 1;
+
+        weightx = 0;
+        weighty = 0;
+        anchor = CENTER;
+        fill = NONE;
+
+        insets = new Insets(0, 0, 0, 0);
+        ipadx = 0;
+        ipady = 0; 
+        */
+        public void SetConstraint(String component,GridBagConstraints constraints){
+            if(this.getLayout() instanceof GridBagLayout){
+                add(items.get(component),constraints);
+            }
+            return;
         }
     }
 
@@ -346,6 +414,34 @@ public class Windows extends JFrame{
             panelList.get(parent).add(panel);
         }
     }
+
+    //this is just for gridconstraints 
+    public void AddPanel(String parent, String name, LayoutManager layout, GridBagConstraints constraints){
+        if(Panel(parent).getLayout() instanceof GridBagLayout){
+
+            //copypasted from original
+            Panels panel = new Panels(name,panelList);
+            panel.setAlignmentX(CENTER_ALIGNMENT);
+            panel.setAlignmentY(CENTER_ALIGNMENT);
+
+            if(layout instanceof BoxLayout){ 
+            panel.setLayout(new BoxLayout(panel, ((BoxLayout)layout).getAxis()));
+            }else{
+            //default
+            panel.setLayout(layout);
+            }
+            panelList.put(name,panel);
+            if(constraints == null){
+                //default constraints
+                panelList.get(parent).add(panel,new GridBagConstraints());
+            }else{
+                panelList.get(parent).add(panel,constraints);
+            }  
+        }else{
+            AddPanel(parent, name, layout);
+        }
+    }
+
 
     /**
      * Displays a warning dialog with the specified title and message. This
