@@ -11,6 +11,7 @@ import boogle.core.*;
  */
 public class UIPlayer implements Player {
     private String name;
+    private Player.Move deferMove = new Player.Move(Player.Move.Type.DEFER);
 
     /**
      * Creates a new human player with the specified name.
@@ -48,8 +49,8 @@ public class UIPlayer implements Player {
      *
      * @return a sentinel value instructing the engine to defer to the UI
      */
-    public String nextMove() {
-        return "__defer";
+    public Player.Move nextMove() {
+        return deferMove;
     }
 
     /**

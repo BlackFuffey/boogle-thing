@@ -14,7 +14,7 @@ import boogle.player.AIPlayer;
  * high‑level game loop and determines when the game has been won or should
  * terminate due to successive passes.
  */
-public class GameMaster {
+public class GameMaster implements Serializable {
 
     /** List of players participating in this game in turn order. */
     private List<Player> playerlist;
@@ -27,7 +27,10 @@ public class GameMaster {
     /** Current game board on which words are played. */
     private Gameboard gameboard;
     /** User interface used to present game state and accept moves. */
-    private GameUI ui;
+    private transient GameUI ui;
+
+    /** Launcher reference for serializing*/
+    private Launcher launcher;
 
     /** Minimum allowed word length. Words shorter than this are rejected. */
     private int minWordLen;
@@ -56,8 +59,9 @@ public class GameMaster {
      *                 consecutively skipped twice around the table.
      * @param ui user interface through which the game communicates with
      *           players
+     * @param launcher launcher reference to serialize when user requests so
      */
-    public GameMaster(List<Player> playerlist, Set<String> dictionary, char[][] board, int minWordLen, int winScore, GameUI ui) {
+    public GameMaster(List<Player> playerlist, Set<String> dictionary, char[][] board, int minWordLen, int winScore,  Launcher launcher) {
         this.playerlist = playerlist;
         this.dictionary = dictionary;
 
@@ -69,9 +73,14 @@ public class GameMaster {
         this.minWordLen = minWordLen;
         this.winScore = winScore;
 
-        this.ui = ui;
+        this.launcher = launcher;
     }
 
+    private class GameState {
+
+    }
+
+    private GameState state;
     /**
      * Runs the main game loop. This method repeatedly asks each player for
      * their move until either a winning score is reached or all players
@@ -85,6 +94,8 @@ public class GameMaster {
      *                     interacting with the terminal or files
      */
     public void begin() throws IOException {
+        this.ui = launcher.ui;
+
         HashMap<Player, Integer> scoreboard = new HashMap<>();
         HashSet<String> playedWords = new HashSet<>();
         ArrayList<String> playedWordList = new ArrayList<>();
@@ -114,60 +125,65 @@ public class GameMaster {
 
             ui.startTurn(gameboard, leaderboard, playedWordList, currentPlayer.getName());
 
-            String move = currentPlayer.nextMove();
+            Player.Move move = currentPlayer.nextMove();
 
-            // yes ik magic string is bad. blame java for making struct defs so verbose
-            if (move != null && move.equals("__defer")) {
+            if (move.type == Player.Move.Type.DEFER) {
                 move = ui.active();
             } else {
                 ui.passive();
             }
 
-            if (move == null) {
-                ui.endTurn(TurnStatus.SKIPPED, move, 0, minWordLen);
-                skipChain++;
-                totalSkips++;
-                atPlayer = (atPlayer+1) % playerlist.size();
+            switch (move.type) {
+                case SKIP: {
+                    ui.endTurn(TurnStatus.SKIPPED, null, 0, minWordLen);
+                    skipChain++;
+                    totalSkips++;
+                    atPlayer = (atPlayer+1) % playerlist.size();
+                    continue;
+                }
+
+                case WORD: break;
+
+                default: 
+                    throw new UnsupportedOperationException(move.type.toString() + " is not implemented");
+            }
+
+            move.value = move.value.toUpperCase();
+            if (move.value.length() < minWordLen) {
+                ui.endTurn(TurnStatus.TOO_SHORT, move.value, 0, minWordLen);
                 continue;
             }
 
-            move = move.toUpperCase();
-
-            if (move.length() < minWordLen) {
-                ui.endTurn(TurnStatus.TOO_SHORT, move, 0, minWordLen);
+            if (playedWords.contains(move.value)) {
+                ui.endTurn(TurnStatus.DUPLICATE, move.value, 0, minWordLen);
                 continue;
             }
 
-            if (playedWords.contains(move)) {
-                ui.endTurn(TurnStatus.DUPLICATE, move, 0, minWordLen);
+            if (!dictionary.contains(move.value)) {
+                ui.endTurn(TurnStatus.NOT_IN_DICT, move.value, 0, minWordLen);
                 continue;
             }
 
-            if (!dictionary.contains(move)) {
-                ui.endTurn(TurnStatus.NOT_IN_DICT, move, 0, minWordLen);
-                continue;
-            }
-
-            if (!gameboard.wordExists(move)) {
-                ui.endTurn(TurnStatus.NOT_ON_BOARD, move, 0, minWordLen);
+            if (!gameboard.wordExists(move.value)) {
+                ui.endTurn(TurnStatus.NOT_ON_BOARD, move.value, 0, minWordLen);
                 continue;
             }
 
             skipChain = 0;
 
-            dictionary.remove(move);    // totally neccesary optimization
-            playedWords.add(move);
-            playedWordList.add(move);
+            dictionary.remove(move.value);    // totally neccesary optimization
+            playedWords.add(move.value);
+            playedWordList.add(move.value);
 
-            int scoreGained = move.length();
-            ui.endTurn(TurnStatus.OK, move, scoreGained, minWordLen);
+            int scoreGained = move.value.length();
+            ui.endTurn(TurnStatus.OK, move.value, scoreGained, minWordLen);
 
             scoreboard.put(currentPlayer, scoreboard.get(currentPlayer)+scoreGained);
 
             atPlayer = (atPlayer+1) % playerlist.size();
 
             for (Player player : playerlist) {
-                player.updateGameState(move, playerlist.get(atPlayer).getName());
+                player.updateGameState(move.value, playerlist.get(atPlayer).getName());
             }
 
             if (winScore > 0 && scoreboard.get(currentPlayer) >= winScore)

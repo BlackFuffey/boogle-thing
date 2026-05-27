@@ -1,5 +1,7 @@
 package boogle.util;
 
+import java.io.Serializable;
+
 /**
  * Generic tree node used to build simple hierarchical structures. Each
  * {@code Tree} stores a reference to its own value ({@link #self}) and a
@@ -13,7 +15,7 @@ package boogle.util;
 
 import java.util.HashMap;
 
-public class Tree<T> {
+public class Tree<T> implements Serializable {
     /** Map of this node’s children keyed by their values. Children are
      * accessible via {@link #getChild(Object)}. */
     private HashMap<T, Tree<T>> children = new HashMap<>();

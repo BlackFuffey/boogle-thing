@@ -1,5 +1,6 @@
 package boogle.util;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -14,7 +15,7 @@ import java.util.Random;
  *
  * @param <T> the type of items contained in the raffle
  */
-public class Raffle<T> {
+public class Raffle<T> implements Serializable {
     /** Internal list of remaining items. Elements drawn are replaced by
      * {@code null} at the end of the active range but never physically
      * removed from this list. */

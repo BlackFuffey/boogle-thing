@@ -4,7 +4,7 @@ import boogle.core.Launcher.GameOptions;
 import boogle.core.GameUI;
 import boogle.core.Launcher;
 import boogle.ui.tui.TextUI;
-import boogle.ui.gui.GraphicalUI;
+//import boogle.ui.gui.GraphicalUI;
 
 /**
  * Entry point for the Boogle application. This class is responsible for
@@ -51,24 +51,28 @@ public class Main {
             System.exit(1);
         }
 
+        args[0] = args[0].toLowerCase();
+
         GameUI ui;
 
-        if (args[0].equalsIgnoreCase("tui")) {
-            ui = new TextUI();
-        }
+        switch (args[0]) {
+            case "tui": {
+                ui = new TextUI();
+            } break;
 
+            case "gui": {
+              //System.out.println("NOTICE: testing only (WIP)");
+              //ui = new GraphicalUI();
+                throw new UnsupportedOperationException("GUI doesnt compile so i disabled it for now");
+            }
 
-      else if (args[0].equalsIgnoreCase("gui")) {//wip
-        System.out.println("NOTICE: testing only (WIP)");
-        ui = new GraphicalUI();
-      }
-
-        else {
-            System.err.printf("Unknown UI type '%s'\n", args[0]);
-            System.err.println("Usage: boogle <tui|gui>");
-            ui = null; // to keep compiler from complaining uninitialized variable
-            System.err.flush();
-            System.exit(1);
+            default: {
+                System.err.printf("Unknown UI type '%s'\n", args[0]);
+                System.err.println("Usage: boogle <tui|gui>");
+                ui = null; // to keep compiler from complaining uninitialized variable
+                System.err.flush();
+                System.exit(1);
+            } break;
         }
 
         try (ui) {

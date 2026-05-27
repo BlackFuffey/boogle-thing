@@ -1,5 +1,6 @@
 package boogle.util;
 
+import java.io.Serializable;
 import java.util.*;
 
 /*
@@ -21,7 +22,7 @@ import java.util.*;
  *
  * @param <T> the type of elements maintained by this set
  */
-public class FastOrderedSet<T> implements Set<T> {
+public class FastOrderedSet<T> implements Set<T>, Serializable {
 
     /**
      * Node used in the internal doubly‑linked list. Each node stores a

@@ -13,7 +13,7 @@ import boogle.player.*;
  * serves as the bridge between user configuration in the lobby and the
  * underlying game engine.
  */
-public class Launcher {
+public class Launcher implements Serializable {
     /**
      * Mutable container of options that influence how a game is played. An
      * instance of this class is passed to the UI to allow the user to set
@@ -44,7 +44,7 @@ public class Launcher {
     }
 
     /** User interface used to interact with the user during lobby and game. */
-    private GameUI ui;
+    protected transient GameUI ui;
 
     /**
      * Constructs a launcher bound to a specific user interface. The launcher
@@ -96,7 +96,7 @@ public class Launcher {
             }
             wordlist.close();
 
-            GameMaster gm = new GameMaster(options.playerlist, dictionary, options.customBoard, options.minWordLength, options.winScore, ui);
+            GameMaster gm = new GameMaster(options.playerlist, dictionary, options.customBoard, options.minWordLength, options.winScore, this);
             gm.begin();
         } catch (Exception e) {
             try { ui.close(); }
@@ -106,6 +106,51 @@ public class Launcher {
             e.printStackTrace();
             return;
         } }
+    }
+
+    public static void writeTournamentFiles(GameOptions options, String boardOutPath, String wordlistOutPath) throws IOException{
+        HashSet<String> dictionary = new HashSet<>();
+
+        try (Scanner wordlist = new Scanner(new File(options.wordlistPath))) {
+            while (wordlist.hasNext()) {
+                String word = wordlist.nextLine();
+
+                if (word.length() < options.minWordLength)
+                continue;
+
+                dictionary.add(word.toUpperCase());
+            }
+        }
+
+        Gameboard gameboard;
+        if (options.customBoard == null)
+            gameboard = new Gameboard();
+        else
+            gameboard = new Gameboard(options.customBoard);
+
+        List<String> moves = AIPlayer.computePossibleMoves(gameboard, dictionary);
+
+        try (PrintWriter boardout = new PrintWriter(boardOutPath)) {
+            for (char[] row : gameboard.board) {
+                for (char letter : row) {
+                    boardout.append(letter);
+                    boardout.append(' ');
+                }
+                boardout.append('\n');
+            }
+
+            boardout.flush();
+        }
+
+        try (PrintWriter wordlistOut = new PrintWriter(wordlistOutPath)) {
+            int counter = 1;
+            for (int i = moves.size()-1; i >= 0; i--) {
+                wordlistOut.write(String.format("%d. %s\n", counter, moves.get(i)));
+                counter++;
+            }
+
+            wordlistOut.flush();
+        }
     }
 
     /**
@@ -159,6 +204,30 @@ public class Launcher {
             return result;
         } catch (IOException e) {
             System.out.println(e.getMessage());
+            return null;
+        }
+    }
+
+    public void serialize(OutputStream out) {
+        try (ObjectOutputStream objout = new ObjectOutputStream(out);){
+            objout.writeObject(this);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+    }
+
+    public static Launcher fromSerialized(InputStream in, GameUI ui) {
+        try (ObjectInputStream objin = new ObjectInputStream(in)){
+            Launcher launcher = (Launcher) objin.readObject();
+
+            launcher.ui = ui;
+
+            return launcher;
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            System.exit(-1);
             return null;
         }
     }

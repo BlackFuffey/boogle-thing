@@ -71,10 +71,9 @@ public interface GameUI extends AutoCloseable {
      * returned value will be validated by the game engine. Returning
      * {@code null} indicates that the player chooses to skip this turn.
      *
-     * @return the word input by the user or {@code null} if they choose to
-     *         skip
+     * @return the move requested by user
      */
-    public String active();
+    public Player.Move active();
 
     /**
      * Enumeration of possible outcomes for a player’s move. These values

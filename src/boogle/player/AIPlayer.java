@@ -288,15 +288,18 @@ public class AIPlayer implements Player {
      *
      * @return the word chosen by the AI, or {@code null} if none are left
      */
-    public String nextMove() {
+    public Player.Move nextMove() {
         if (this.available == null)
             initialize();
 
+        if (available.size() == 0) 
+            return new Player.Move(Player.Move.Type.LEAVE);
+
         // make a move according to the AI level
         switch(this.level) {
-            case PERFECT: return available.get(available.size()-1);
+            case PERFECT: return new Player.Move(Player.Move.Type.WORD, available.get(available.size()-1));
 
-            case DUMB: return available.get(0);
+            case DUMB: return new Player.Move(Player.Move.Type.WORD, available.get(0));
 
             case SMART:
             case GOOD:
@@ -316,7 +319,7 @@ public class AIPlayer implements Player {
                 int i = 0;
                 for (String move : useUpperHalf ? available.reverse() : available) {
                     if (i == target)
-                        return move;
+                        return new Player.Move(Player.Move.Type.WORD, move);
                     i++;
                 }
             }
@@ -381,4 +384,12 @@ public class AIPlayer implements Player {
         return result;
     }
 
+    public static List<String> computePossibleMoves(Gameboard board, Set<String> dictionary) {
+        AIPlayer player = new AIPlayer("4chan.org", Level.PERFECT);     // we love 4chan
+        
+        player.setGame(board, dictionary);
+        player.initialize();
+
+        return new ArrayList<>(player.available);
+    }
 }

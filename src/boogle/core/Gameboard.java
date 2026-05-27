@@ -1,5 +1,6 @@
 package boogle.core;
 
+import java.io.Serializable;
 import java.util.*;
 
 import boogle.util.*;
@@ -15,7 +16,7 @@ import boogle.util.*;
  * cursor for depth‑first traversal when validating whether a word can be
  * formed by adjacent tiles without reusing the same position.
  */
-public class Gameboard {
+public class Gameboard implements Serializable {
 
     /**
      * Pool of dice used to generate a random board. Each string in this list
@@ -54,7 +55,7 @@ public class Gameboard {
      * in one of eight {@link Direction} values, backtrack to the previous
      * position and produce the sequence of characters visited so far.
      */
-    public class GameboardWalker {
+    public class GameboardWalker implements Serializable {
         /** The walker’s current column (zero‑based). */
         private int x;
         /** The walker’s current row (zero‑based). */

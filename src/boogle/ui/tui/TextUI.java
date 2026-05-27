@@ -229,6 +229,24 @@ public class TextUI implements GameUI {
                         if (this.playSfx) GameSound.ok();
                     } break;
 
+                    case "gen-tnmt": {
+                        Terminal.showCursor();
+                        System.out.print("Enter path to board file: ");
+                        String boardPath = console.nextLine();
+
+                        System.out.print("Enter path to wordlist file: ");
+                        String wordlistPath = console.nextLine();
+
+                        try { 
+                            Launcher.writeTournamentFiles(options, boardPath, wordlistPath);
+                            System.out.println("OK");
+                        } catch (IOException e) {
+                            System.err.println(e.getMessage());
+                            System.out.println("Unable to generate tournament files");
+                        }
+                        Terminal.hideCursor();
+                    } break;
+
                     default: {
                         System.out.printf("I don't understand '%s'.\nSee the 'Commands' section on top for list of commands.\n", cmd[0]);
                         if (this.playSfx) GameSound.bad();
@@ -651,18 +669,32 @@ public class TextUI implements GameUI {
      *
      * @return the word entered by the user, or {@code null} to skip
      */
-    public String active() {
+    public Player.Move active() {
         Terminal.showCursor();
-        System.out.println("\nEnter your word, or '-skip' to skip this turn");
+        System.out.println("\nEnter your word of choice or a command");
+        System.out.println("List of commands:");
+        System.out.println("    -skip           --      skip this turn");
+        System.out.println("    -giveup         --      give up and leave the game");
+        System.out.println("    -save <path>    --      Save game");
+        System.out.println("    -stop           --      Stop game");
         System.out.print(currentPlayerName + ", make your move: ");
     
-        String input = console.nextLine();
+        String input = console.nextLine().trim().toLowerCase();
+        String[] args = input.split(" ", 1);
 
-        if (input.equalsIgnoreCase(
-        "-skip")) 
-            return null;
+        switch (args[0]) {
+            case "-skip":
+                return new Player.Move(Player.Move.Type.SKIP);
 
-        return input;
+            case "-giveup":
+                return new Player.Move(Player.Move.Type.LEAVE);
+
+            case "-save":
+                return new Player.Move(Player.Move.Type.SAVE, args[1]);
+                
+            default:
+                return new Player.Move(Player.Move.Type.WORD, input);
+        }
     }
 
     /**
