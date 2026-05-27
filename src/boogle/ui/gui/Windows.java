@@ -26,7 +26,7 @@ class Components {
      */
     public static JButton addButton(String word, ActionListener action) {
         JButton button = new JButton(word);
-        button.addActionListener(action);;
+        button.addActionListener(action);
         return button;
     }
     /**
@@ -116,7 +116,7 @@ public class Windows extends JFrame{
          * {@link #GetItem(String)} will return {@code null} for all keys.
          */
         public void Clear() {
-            items.clear();
+            items = new HashMap<>();
             this.removeAll();
         }
 
@@ -167,6 +167,7 @@ public class Windows extends JFrame{
             this.add(items.get(name));
         }
 
+        //TODO: outdated doc
         /**
          * Sets the alignment of this panel within its parent using a simple
          * alignment code. See {@link #setAnchor(String)} documentation in
@@ -174,76 +175,46 @@ public class Windows extends JFrame{
          *
          * @param alignment cardinal alignment code (e.g. "C", "N", "SW")
          */
-        public void setAnchor(String alignment) {
+        public void setAnchor(String item,String alignment) {
+            JComponent comp;
+            if(GetItem(item)!=null){
+                comp=GetItem(item);
+            }else if(item.equals("THIS")){
+                comp=this;
+            }else{
+                return;
+            }
             switch (alignment.toUpperCase()) {
                 case "C":
-                    this.setAlignmentX(CENTER_ALIGNMENT);
-                    this.setAlignmentY(CENTER_ALIGNMENT);
+                    comp.setAlignmentX(CENTER_ALIGNMENT);
+                    comp.setAlignmentY(CENTER_ALIGNMENT);
                     break;
                 case "NW":
-                    this.setAlignmentX(TOP_ALIGNMENT);
-                    this.setAlignmentY(RIGHT_ALIGNMENT);
+                    comp.setAlignmentX(TOP_ALIGNMENT);
+                    comp.setAlignmentY(RIGHT_ALIGNMENT);
                     break;
                 case "N":
-                    this.setAlignmentX(CENTER_ALIGNMENT);
-                    this.setAlignmentY(TOP_ALIGNMENT);
+                    comp.setAlignmentX(CENTER_ALIGNMENT);
+                    comp.setAlignmentY(TOP_ALIGNMENT);
                     break;
                 case "NE":
-                    this.setAlignmentX(TOP_ALIGNMENT);
-                    this.setAlignmentY(LEFT_ALIGNMENT);
+                    comp.setAlignmentX(TOP_ALIGNMENT);
+                    comp.setAlignmentY(LEFT_ALIGNMENT);
                     break;
                 case "E":
                 case "SE":
                 case "S":
-                    this.setAlignmentX(CENTER_ALIGNMENT);
-                    this.setAlignmentY(BOTTOM_ALIGNMENT);
+                    comp.setAlignmentX(CENTER_ALIGNMENT);
+                    comp.setAlignmentY(BOTTOM_ALIGNMENT);
                     break;
                 case "SW":
                 case "W":
-                    this.setAlignmentX(LEFT_ALIGNMENT);
-                    this.setAlignmentY(CENTER_ALIGNMENT);
+                    comp.setAlignmentX(LEFT_ALIGNMENT);
+                    comp.setAlignmentY(CENTER_ALIGNMENT);
                     break;
-                default:
-                    return;
             }
         }
 
-
-        //set component anchor too (just use getItem() in parameter)
-        public void setAnchor(JComponent item, String alignment){
-            try{
-            switch (alignment.toUpperCase()) {
-                case "C":
-                    item.setAlignmentX(CENTER_ALIGNMENT);
-                    item.setAlignmentY(CENTER_ALIGNMENT);
-                    break;
-                case "NW":
-                    item.setAlignmentX(TOP_ALIGNMENT);
-                    item.setAlignmentY(RIGHT_ALIGNMENT);
-                    break;
-                case "N":
-                    item.setAlignmentX(CENTER_ALIGNMENT);
-                    item.setAlignmentY(TOP_ALIGNMENT);
-                    break;
-                case "NE":
-                    item.setAlignmentX(TOP_ALIGNMENT);
-                    item.setAlignmentY(LEFT_ALIGNMENT);
-                    break;
-                case "E":
-                case "SE":
-                case "S":
-                    item.setAlignmentX(CENTER_ALIGNMENT);
-                    item.setAlignmentY(BOTTOM_ALIGNMENT);
-                    break;
-                case "SW":
-                case "W":
-                    item.setAlignmentX(LEFT_ALIGNMENT);
-                    item.setAlignmentY(CENTER_ALIGNMENT);
-                    break;
-                default:
-                    return;
-            }}catch(NullPointerException e){}
-        }
 
         //accessor
         /**
@@ -294,11 +265,15 @@ public class Windows extends JFrame{
         ipadx = 0;
         ipady = 0; 
         */
-        public void SetConstraint(String component,GridBagConstraints constraints){
+
+        public void SetConstraint(JComponent component,GridBagConstraints constraints){
             if(this.getLayout() instanceof GridBagLayout){
-                add(items.get(component),constraints);
+                if(constraints == null){
+                    ((GridBagLayout)this.getLayout()).setConstraints(component, new GridBagConstraints());
+                }else{
+                    ((GridBagLayout)this.getLayout()).setConstraints(component, constraints);
+                }
             }
-            return;
         }
     }
 
@@ -309,13 +284,6 @@ public class Windows extends JFrame{
      * repeatedly.
      */
     private boolean created; 
-
-    /**
-     * Cached copy of the screen resolution as reported by the local
-     * {@link Toolkit}. Exposed via {@link #getScreenSize()} for use when
-     * calculating window sizes.
-     */
-    public static Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 
     /**
      * Mapping from panel names to their corresponding {@code Panels}
@@ -352,9 +320,7 @@ public class Windows extends JFrame{
      * from scratch.
      */
     public void Clear(){
-        for(String name: panelList.keySet()){
-            panelList.remove(name);
-        }
+        panelList = new HashMap<>();
         this.removeAll();
     }
     
@@ -415,34 +381,6 @@ public class Windows extends JFrame{
         }
     }
 
-    //this is just for gridconstraints 
-    public void AddPanel(String parent, String name, LayoutManager layout, GridBagConstraints constraints){
-        if(Panel(parent).getLayout() instanceof GridBagLayout){
-
-            //copypasted from original
-            Panels panel = new Panels(name,panelList);
-            panel.setAlignmentX(CENTER_ALIGNMENT);
-            panel.setAlignmentY(CENTER_ALIGNMENT);
-
-            if(layout instanceof BoxLayout){ 
-            panel.setLayout(new BoxLayout(panel, ((BoxLayout)layout).getAxis()));
-            }else{
-            //default
-            panel.setLayout(layout);
-            }
-            panelList.put(name,panel);
-            if(constraints == null){
-                //default constraints
-                panelList.get(parent).add(panel,new GridBagConstraints());
-            }else{
-                panelList.get(parent).add(panel,constraints);
-            }  
-        }else{
-            AddPanel(parent, name, layout);
-        }
-    }
-
-
     /**
      * Displays a warning dialog with the specified title and message. This
      * static convenience method delegates to
@@ -470,15 +408,7 @@ public class Windows extends JFrame{
         return panelList.get(name);
     }
 
-    /**
-     * Returns the screen resolution captured when the class was loaded. This
-     * value can be used to size windows relative to the user’s display.
-     *
-     * @return the screen dimensions as a {@link Dimension}
-     */
-    public static Dimension getScreenSize(){
-        return screenSize;
-    }
+ 
 
     /**
      * Indicates whether {@link #Created()} has been called on this window.
