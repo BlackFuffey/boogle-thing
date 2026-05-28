@@ -218,6 +218,24 @@ public class TextUI implements GameUI {
                         if (this.playSfx) GameSound.bad();
                     } break;
 
+                    case "load": {
+                        try {
+                            options.replacement = Launcher.fromSerialized(
+                                new FileInputStream(cmd[1]), this
+                            );
+                            System.out.println("Save file loaded successfully!");
+                            System.out.println("Press enter to continue");
+                            this.confirmForSure();
+                            return true;
+                        } catch (IOException e) {
+                            System.err.println(e.getMessage());
+                            System.out.println("Unable to load save file");
+                        } catch (ClassNotFoundException e) {
+                            System.err.println(e.getMessage());
+                            System.out.println("Save file not compatible");
+                        }
+                    } break;
+
                     case "quit": { 
                         if (this.playSfx) GameSound.ok();
                         return false; 
@@ -725,6 +743,14 @@ public class TextUI implements GameUI {
             case OK:
                 System.out.printf("%s played the word '%s' and gained +%d score!\n", currentPlayerName, move, scoreGained);
                 if (this.playSfx) GameSound.ok();
+            break;
+            case SAVE_OK:
+                System.out.println("Game was successful saved!");
+                if (this.playSfx) GameSound.ok();
+            break;
+            case SAVE_ERR:
+                System.out.println("Error when saving game: "+move);
+                if (this.playSfx) GameSound.bad();
             break;
             case SKIPPED:
                 System.out.println(currentPlayerName+" skipped their turn!");

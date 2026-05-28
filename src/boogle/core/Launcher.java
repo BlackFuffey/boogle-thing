@@ -24,8 +24,10 @@ public class Launcher implements Serializable {
     public static class GameOptions {
         /** List of players in turn order. Must be non‑empty before starting. */
         public ArrayList<Player> playerlist;
+
         /** Path to the dictionary file from which to load valid words. */
         public String wordlistPath;
+
         /**
          * Optional custom board. When {@code null} the board will be
          * generated randomly. When non‑null the array’s contents are used
@@ -33,18 +35,24 @@ public class Launcher implements Serializable {
          * letters.
          */
         public char[][] customBoard;
+
         /** Minimum length for any word that may be played. */
         public int minWordLength;
+
         /**
          * Score threshold required to win. A value of zero indicates that
          * there is no winning score and the game ends only when skip limits
          * are reached. Each point corresponds to one letter in a valid word.
          */
         public int winScore;
+    
+        /** Replacement Launcher object, used for loading save files */
+        public Launcher replacement;
     }
 
     /** User interface used to interact with the user during lobby and game. */
     protected transient GameUI ui;
+    private GameOptions options;
 
     /**
      * Constructs a launcher bound to a specific user interface. The launcher
@@ -69,7 +77,9 @@ public class Launcher implements Serializable {
      * @param options mutable configuration prepared by the UI
      */
     public void start(GameOptions options) {
+        this.options = options;
         for (;;) { try {
+            options = this.options;
             for (int i = 0; i < options.playerlist.size(); i++) {
                 Player player = options.playerlist.get(i);
                 if (player instanceof AIPlayer) {
@@ -82,6 +92,11 @@ public class Launcher implements Serializable {
 
             if (!this.ui.lobby(options))
                 return;
+
+            if (options.replacement != null) {
+                this.replace(options.replacement);
+                continue;
+            }
 
             HashSet<String> dictionary = new HashSet<>();
 
@@ -208,27 +223,25 @@ public class Launcher implements Serializable {
         }
     }
 
-    public void serialize(OutputStream out) {
-        try (ObjectOutputStream objout = new ObjectOutputStream(out);){
-            objout.writeObject(this);
+    private void replace(Launcher replacement) {
+        this.options = replacement.options;
+        this.ui = replacement.ui;
+        this.options.replacement = null;
+    }
 
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.exit(-1);
+    public void serialize(OutputStream out) throws IOException {
+        try (ObjectOutputStream objout = new ObjectOutputStream(out)){
+            objout.writeObject(this);
         }
     }
 
-    public static Launcher fromSerialized(InputStream in, GameUI ui) {
-        try (ObjectInputStream objin = new ObjectInputStream(in)){
+    public static Launcher fromSerialized(InputStream in, GameUI ui) throws IOException, ClassNotFoundException {
+        try (ObjectInputStream objin = new ObjectInputStream(in)) {
             Launcher launcher = (Launcher) objin.readObject();
 
             launcher.ui = ui;
 
             return launcher;
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-            System.exit(-1);
-            return null;
         }
     }
 

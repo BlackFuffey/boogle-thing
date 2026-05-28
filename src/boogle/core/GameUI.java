@@ -26,6 +26,7 @@ import boogle.core.Launcher.GameOptions;
  * </ol>
  */
 public interface GameUI extends AutoCloseable {
+
     /**
      * Displays the lobby screen and allows the user to configure game options
      * such as player list, dictionary path, minimum word length and winning
@@ -92,7 +93,11 @@ public interface GameUI extends AutoCloseable {
         /** The word was not found in the dictionary. */
         NOT_IN_DICT,
         /** The word could not be formed on the current board. */
-        NOT_ON_BOARD
+        NOT_ON_BOARD,
+        /** Game state was saved successfully */
+        SAVE_OK,
+        /** Failed to save game */
+        SAVE_ERR
     }
 
     /**

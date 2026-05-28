@@ -134,6 +134,8 @@ public class GameMaster implements Serializable {
             }
 
             switch (move.type) {
+                case WORD: break;
+
                 case SKIP: {
                     ui.endTurn(TurnStatus.SKIPPED, null, 0, minWordLen);
                     skipChain++;
@@ -142,7 +144,16 @@ public class GameMaster implements Serializable {
                     continue;
                 }
 
-                case WORD: break;
+                case SAVE: {
+                    try { this.launcher.serialize(new FileOutputStream(move.value)); }
+                    catch (IOException e) {
+                        ui.endTurn(TurnStatus.SAVE_ERR, e.getMessage(), 0, 0);
+                        continue;
+                    }
+
+                    ui.endTurn(TurnStatus.SAVE_OK, null, 0, 0);
+                    continue;
+                }
 
                 default: 
                     throw new UnsupportedOperationException(move.type.toString() + " is not implemented");
