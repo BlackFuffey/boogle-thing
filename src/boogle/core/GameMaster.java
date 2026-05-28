@@ -76,8 +76,18 @@ public class GameMaster implements Serializable {
         this.launcher = launcher;
     }
 
-    private class GameState {
+    /** Serializable state for a game that may be paused and resumed. */
+    private static class GameState implements Serializable {
+        private static final long serialVersionUID = 1L;
 
+        private HashMap<Player, Integer> scoreboard = new HashMap<>();
+        private HashSet<String> playedWords = new HashSet<>();
+        private ArrayList<String> playedWordList = new ArrayList<>();
+
+        private int atPlayer = 0;
+        private int skipChain = 0;
+        private int totalSkips = 0;
+        private int maxScore = 0;
     }
 
     private GameState state;
@@ -96,34 +106,30 @@ public class GameMaster implements Serializable {
     public void begin() throws IOException {
         this.ui = launcher.ui;
 
-        HashMap<Player, Integer> scoreboard = new HashMap<>();
-        HashSet<String> playedWords = new HashSet<>();
-        ArrayList<String> playedWordList = new ArrayList<>();
+        if (state == null) {
+            state = new GameState();
 
-        for (Player player : playerlist) {
-            scoreboard.put(player, 0);
+            for (Player player : playerlist) {
+                state.scoreboard.put(player, 0);
+            }
+
+            state.maxScore = AIPlayer.computeMaxScore(gameboard, dictionary);
         }
-
-        int atPlayer = 0;
-        int skipChain = 0;
-        int totalSkips = 0;
-
-        int maxScore = AIPlayer.computeMaxScore(gameboard, dictionary);
 
         for (Player player : playerlist) {
             player.setGame(gameboard, dictionary);
         }
 
-        while (skipChain < playerlist.size() * 2) try {
-            Player currentPlayer = playerlist.get(atPlayer);
+        while (state.skipChain < playerlist.size() * 2) try {
+            Player currentPlayer = playerlist.get(state.atPlayer);
 
             List<Map.Entry<String, Integer>> leaderboard = new ArrayList<>();
-            for (Map.Entry<Player, Integer> entry : scoreboard.entrySet()) {
+            for (Map.Entry<Player, Integer> entry : state.scoreboard.entrySet()) {
                 leaderboard.add(Map.entry(entry.getKey().getName(), entry.getValue()));
             }
             leaderboard.sort((a, b) -> b.getValue() - a.getValue());
 
-            ui.startTurn(gameboard, leaderboard, playedWordList, currentPlayer.getName());
+            ui.startTurn(gameboard, leaderboard, state.playedWordList, currentPlayer.getName());
 
             Player.Move move = currentPlayer.nextMove();
 
@@ -138,9 +144,9 @@ public class GameMaster implements Serializable {
 
                 case SKIP: {
                     ui.endTurn(TurnStatus.SKIPPED, null, 0, minWordLen);
-                    skipChain++;
-                    totalSkips++;
-                    atPlayer = (atPlayer+1) % playerlist.size();
+                    state.skipChain++;
+                    state.totalSkips++;
+                    state.atPlayer = (state.atPlayer+1) % playerlist.size();
                     continue;
                 }
 
@@ -165,7 +171,7 @@ public class GameMaster implements Serializable {
                 continue;
             }
 
-            if (playedWords.contains(move.value)) {
+            if (state.playedWords.contains(move.value)) {
                 ui.endTurn(TurnStatus.DUPLICATE, move.value, 0, minWordLen);
                 continue;
             }
@@ -180,36 +186,36 @@ public class GameMaster implements Serializable {
                 continue;
             }
 
-            skipChain = 0;
+            state.skipChain = 0;
 
             dictionary.remove(move.value);    // totally neccesary optimization
-            playedWords.add(move.value);
-            playedWordList.add(move.value);
+            state.playedWords.add(move.value);
+            state.playedWordList.add(move.value);
 
             int scoreGained = move.value.length();
             ui.endTurn(TurnStatus.OK, move.value, scoreGained, minWordLen);
 
-            scoreboard.put(currentPlayer, scoreboard.get(currentPlayer)+scoreGained);
+            state.scoreboard.put(currentPlayer, state.scoreboard.get(currentPlayer)+scoreGained);
 
-            atPlayer = (atPlayer+1) % playerlist.size();
+            state.atPlayer = (state.atPlayer+1) % playerlist.size();
 
             for (Player player : playerlist) {
-                player.updateGameState(move.value, playerlist.get(atPlayer).getName());
+                player.updateGameState(move.value, playerlist.get(state.atPlayer).getName());
             }
 
-            if (winScore > 0 && scoreboard.get(currentPlayer) >= winScore)
+            if (winScore > 0 && state.scoreboard.get(currentPlayer) >= winScore)
                 break;
         } finally {
             ui.confirm();
         }
 
         List<Map.Entry<String, Integer>> leaderboard = new ArrayList<>();
-        for (Map.Entry<Player, Integer> entry : scoreboard.entrySet()) {
+        for (Map.Entry<Player, Integer> entry : state.scoreboard.entrySet()) {
             leaderboard.add(Map.entry(entry.getKey().getName(), entry.getValue()));
         }
         leaderboard.sort((a, b) -> b.getValue() - a.getValue());
 
-        ui.results(leaderboard, totalSkips, maxScore);
+        ui.results(leaderboard, state.totalSkips, state.maxScore);
         ui.confirmForSure();
     }
 }

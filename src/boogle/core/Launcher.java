@@ -21,7 +21,7 @@ public class Launcher implements Serializable {
      * game begins. None of these fields are final so that the lobby may
      * update them directly.
      */
-    public static class GameOptions {
+    public static class GameOptions implements Serializable {
         /** List of players in turn order. Must be non‑empty before starting. */
         public ArrayList<Player> playerlist;
 
@@ -52,7 +52,10 @@ public class Launcher implements Serializable {
 
     /** User interface used to interact with the user during lobby and game. */
     protected transient GameUI ui;
+
     private GameOptions options;
+
+    private GameMaster gm;
 
     /**
      * Constructs a launcher bound to a specific user interface. The launcher
@@ -75,11 +78,21 @@ public class Launcher implements Serializable {
      * closed and the method returns to the caller.
      *
      * @param options mutable configuration prepared by the UI
+     *
+     * @return if the caller should call again or not
      */
     public void start(GameOptions options) {
         this.options = options;
         for (;;) { try {
             options = this.options;
+            System.out.println(gm);
+
+            if (this.gm != null) {
+                this.gm.begin();
+                this.gm = null;
+                continue;
+            }
+
             for (int i = 0; i < options.playerlist.size(); i++) {
                 Player player = options.playerlist.get(i);
                 if (player instanceof AIPlayer) {
@@ -111,8 +124,9 @@ public class Launcher implements Serializable {
             }
             wordlist.close();
 
-            GameMaster gm = new GameMaster(options.playerlist, dictionary, options.customBoard, options.minWordLength, options.winScore, this);
-            gm.begin();
+            this.gm = new GameMaster(options.playerlist, dictionary, options.customBoard, options.minWordLength, options.winScore, this);
+            this.gm.begin();
+            this.gm = null;
         } catch (Exception e) {
             try { ui.close(); }
             catch (Exception e2){
@@ -226,6 +240,7 @@ public class Launcher implements Serializable {
     private void replace(Launcher replacement) {
         this.options = replacement.options;
         this.ui = replacement.ui;
+        this.gm = replacement.gm;
         this.options.replacement = null;
     }
 

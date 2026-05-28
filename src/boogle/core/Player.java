@@ -43,7 +43,7 @@ public interface Player extends Serializable {
          * For {@link Type#WORD} moves, {@link #value} stores the word to play. For
          * all other move types, {@link #value} is typically {@code null}.
      */
-    public static class Move {
+    public static class Move implements Serializable{
         /**
          * The kind of action requested by a player.
          */

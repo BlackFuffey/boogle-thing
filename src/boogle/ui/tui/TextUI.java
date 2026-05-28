@@ -228,11 +228,9 @@ public class TextUI implements GameUI {
                             this.confirmForSure();
                             return true;
                         } catch (IOException e) {
-                            System.err.println(e.getMessage());
-                            System.out.println("Unable to load save file");
+                            System.err.println("Unable to load save file: "+e.getMessage());
                         } catch (ClassNotFoundException e) {
-                            System.err.println(e.getMessage());
-                            System.out.println("Save file not compatible");
+                            System.err.println("Save file not compatible: "+e.getMessage());
                         }
                     } break;
 
@@ -694,11 +692,11 @@ public class TextUI implements GameUI {
         System.out.println("    -skip           --      skip this turn");
         System.out.println("    -giveup         --      give up and leave the game");
         System.out.println("    -save <path>    --      Save game");
-        System.out.println("    -stop           --      Stop game");
+        System.out.println("    -stop           --      Stop game\n");
         System.out.print(currentPlayerName + ", make your move: ");
     
         String input = console.nextLine().trim().toLowerCase();
-        String[] args = input.split(" ", 1);
+        String[] args = padArray(input.split(" ", 2), 2, "");
 
         switch (args[0]) {
             case "-skip":
@@ -745,7 +743,7 @@ public class TextUI implements GameUI {
                 if (this.playSfx) GameSound.ok();
             break;
             case SAVE_OK:
-                System.out.println("Game was successful saved!");
+                System.out.println("Game successful saved!");
                 if (this.playSfx) GameSound.ok();
             break;
             case SAVE_ERR:

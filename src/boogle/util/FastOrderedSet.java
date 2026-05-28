@@ -29,7 +29,7 @@ public class FastOrderedSet<T> implements Set<T>, Serializable {
      * reference to the contained value and pointers to the previous and
      * next nodes in the sequence. Nodes are not exposed outside this class.
      */
-    private static class Node<T> {
+    private static class Node<T> implements Serializable {
         /** Value stored at this position in the list. */
         T val;
         /** Pointer to the previous node in the list or {@code null} if this is the head. */
