@@ -707,6 +707,9 @@ public class TextUI implements GameUI {
 
             case "-save":
                 return new Player.Move(Player.Move.Type.SAVE, args[1]);
+
+            case "-stop":
+                return new Player.Move(Player.Move.Type.STOP);
                 
             default:
                 return new Player.Move(Player.Move.Type.WORD, input);
@@ -768,6 +771,14 @@ public class TextUI implements GameUI {
             break;
             case NOT_ON_BOARD:
                 System.out.println("Word does not exist on board! Try a different one");
+                if (this.playSfx) GameSound.bad();
+            break;
+            case STOPPED:
+                System.out.println("This game of boogle is no more :(");
+                if (this.playSfx) GameSound.bad();
+            break;
+            case PLAYER_LEFT:
+                System.out.printf("%s left the game!\n", currentPlayerName);
                 if (this.playSfx) GameSound.bad();
             break;
         }

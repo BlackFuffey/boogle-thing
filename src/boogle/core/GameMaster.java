@@ -83,6 +83,7 @@ public class GameMaster implements Serializable {
         private HashMap<Player, Integer> scoreboard = new HashMap<>();
         private HashSet<String> playedWords = new HashSet<>();
         private ArrayList<String> playedWordList = new ArrayList<>();
+        private Set<Player> leftPlayers = new HashSet<>();
 
         private int atPlayer = 0;
         private int skipChain = 0;
@@ -120,8 +121,13 @@ public class GameMaster implements Serializable {
             player.setGame(gameboard, dictionary);
         }
 
-        while (state.skipChain < playerlist.size() * 2) try {
+        gameloop: while (state.skipChain < (playerlist.size()-state.leftPlayers.size()) * 2) try {
             Player currentPlayer = playerlist.get(state.atPlayer);
+
+            if (state.leftPlayers.contains(currentPlayer)) {
+                state.atPlayer = (state.atPlayer+1) % playerlist.size();
+                continue;
+            }
 
             List<Map.Entry<String, Integer>> leaderboard = new ArrayList<>();
             for (Map.Entry<Player, Integer> entry : state.scoreboard.entrySet()) {
@@ -158,6 +164,17 @@ public class GameMaster implements Serializable {
                     }
 
                     ui.endTurn(TurnStatus.SAVE_OK, null, 0, 0);
+                    continue;
+                }
+
+                case STOP: {
+                    ui.endTurn(TurnStatus.STOPPED, null, 0, 0);
+                    break gameloop;
+                }
+
+                case LEAVE: {
+                    state.leftPlayers.add(currentPlayer);
+                    ui.endTurn(TurnStatus.PLAYER_LEFT, null, 0, 0);
                     continue;
                 }
 

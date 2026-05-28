@@ -94,10 +94,18 @@ public interface GameUI extends AutoCloseable {
         NOT_IN_DICT,
         /** The word could not be formed on the current board. */
         NOT_ON_BOARD,
+
         /** Game state was saved successfully */
         SAVE_OK,
+
         /** Failed to save game */
-        SAVE_ERR
+        SAVE_ERR,
+
+        /** Player stopped game */
+        STOPPED,
+
+        /** Player left game */
+        PLAYER_LEFT
     }
 
     /**
