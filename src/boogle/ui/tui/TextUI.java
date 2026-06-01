@@ -291,7 +291,7 @@ public class TextUI implements GameUI {
      * @param padWith element value used to pad the array
      * @return an array of length at least {@code padLength}
      */
-    static <T> T[] padArray(T[] arr, int padLength, T padWith) {
+    private static <T> T[] padArray(T[] arr, int padLength, T padWith) {
         if (arr.length >= padLength)
             return arr;
 
@@ -315,7 +315,7 @@ public class TextUI implements GameUI {
      * @return the {@link Player} at the specified position, or {@code null} if
      *         the index could not be parsed
      */
-    static Player resolvePlayerNum(List<Player> playerlist, String playerNumStr) {
+    private static Player resolvePlayerNum(List<Player> playerlist, String playerNumStr) {
         try {
             return playerlist.get(parsePlayerNum(playerlist, playerNumStr));
         } catch (Exception e) {
@@ -334,7 +334,7 @@ public class TextUI implements GameUI {
      * @return zero‑based index into {@code playerlist}
      * @throws IllegalArgumentException if the parsed index is out of range
      */
-    static int parsePlayerNum(List<Player> playerlist, String playerNumStr) {
+    private static int parsePlayerNum(List<Player> playerlist, String playerNumStr) {
         playerNumStr = playerNumStr.toLowerCase();
 
         int playerNum = Integer.parseInt(playerNumStr.replace("p", ""))-1;
@@ -360,7 +360,7 @@ public class TextUI implements GameUI {
      * @return {@code true} if the option was successfully updated; {@code false}
      *         if validation failed
      */
-    static boolean setOption(GameOptions options, TextUI ui, String key, String value) {
+    private static boolean setOption(GameOptions options, TextUI ui, String key, String value) {
         switch(key) {
             case "win_score":
                 try { 

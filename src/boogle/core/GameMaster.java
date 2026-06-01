@@ -78,8 +78,6 @@ public class GameMaster implements Serializable {
 
     /** Serializable state for a game that may be paused and resumed. */
     private static class GameState implements Serializable {
-        private static final long serialVersionUID = 1L;
-
         private HashMap<Player, Integer> scoreboard = new HashMap<>();
         private HashSet<String> playedWords = new HashSet<>();
         private ArrayList<String> playedWordList = new ArrayList<>();

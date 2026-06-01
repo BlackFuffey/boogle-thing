@@ -31,11 +31,11 @@ public class FastOrderedSet<T> implements Set<T>, Serializable {
      */
     private static class Node<T> implements Serializable {
         /** Value stored at this position in the list. */
-        T val;
+        private T val;
         /** Pointer to the previous node in the list or {@code null} if this is the head. */
-        Node<T> prev;
+        private Node<T> prev;
         /** Pointer to the next node in the list or {@code null} if this is the tail. */
-        Node<T> next;
+        private Node<T> next;
 
         /**
          * Constructs a new node wrapping the specified value. Both next and
@@ -43,7 +43,7 @@ public class FastOrderedSet<T> implements Set<T>, Serializable {
          *
          * @param val the value to store in the node
          */
-        Node(T val) {
+        private Node(T val) {
             this.val = val;
         }
     }
