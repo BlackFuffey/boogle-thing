@@ -116,7 +116,7 @@ public class Windows extends JFrame{
          * {@link #GetItem(String)} will return {@code null} for all keys.
          */
         public void Clear() {
-            items = new HashMap<>();
+            items = new HashMap<String, JComponent>();
             this.removeAll();
         }
 
@@ -166,55 +166,6 @@ public class Windows extends JFrame{
             ((JComboBox<?>) items.get(name)).setSelectedIndex(0);
             this.add(items.get(name));
         }
-
-        //TODO: outdated doc
-        /**
-         * Sets the alignment of this panel within its parent using a simple
-         * alignment code. See {@link #setAnchor(String)} documentation in
-         * {@link Panels} for the mapping between codes and positions.
-         *
-         * @param alignment cardinal alignment code (e.g. "C", "N", "SW")
-         */
-        public void setAnchor(String item,String alignment) {
-            JComponent comp;
-            if(GetItem(item)!=null){
-                comp=GetItem(item);
-            }else if(item.equals("THIS")){
-                comp=this;
-            }else{
-                return;
-            }
-            switch (alignment.toUpperCase()) {
-                case "C":
-                    comp.setAlignmentX(CENTER_ALIGNMENT);
-                    comp.setAlignmentY(CENTER_ALIGNMENT);
-                    break;
-                case "NW":
-                    comp.setAlignmentX(TOP_ALIGNMENT);
-                    comp.setAlignmentY(RIGHT_ALIGNMENT);
-                    break;
-                case "N":
-                    comp.setAlignmentX(CENTER_ALIGNMENT);
-                    comp.setAlignmentY(TOP_ALIGNMENT);
-                    break;
-                case "NE":
-                    comp.setAlignmentX(TOP_ALIGNMENT);
-                    comp.setAlignmentY(LEFT_ALIGNMENT);
-                    break;
-                case "E":
-                case "SE":
-                case "S":
-                    comp.setAlignmentX(CENTER_ALIGNMENT);
-                    comp.setAlignmentY(BOTTOM_ALIGNMENT);
-                    break;
-                case "SW":
-                case "W":
-                    comp.setAlignmentX(LEFT_ALIGNMENT);
-                    comp.setAlignmentY(CENTER_ALIGNMENT);
-                    break;
-            }
-        }
-
 
         //accessor
         /**
@@ -290,7 +241,7 @@ public class Windows extends JFrame{
      * instances. This allows nested panels to be looked up and added to
      * other panels by name.
      */
-    private HashMap<String, Panels> panelList = new HashMap<>();
+    private HashMap<String, Panels> panelList = new HashMap<String, Panels>();
 
     
     /**
@@ -320,7 +271,7 @@ public class Windows extends JFrame{
      * from scratch.
      */
     public void Clear(){
-        panelList = new HashMap<>();
+        panelList = new HashMap<String,Panels>();
         this.removeAll();
     }
     
@@ -372,7 +323,6 @@ public class Windows extends JFrame{
             //default
             panel.setLayout(layout);
         }
-        panelList.put(name,panel);
         if(parent.toLowerCase().equals("main")){
             this.add(panel);
         }
@@ -391,8 +341,26 @@ public class Windows extends JFrame{
      * @param title  title string for the dialog window
      * @param text   message to display within the dialog
      */
-    public static void CreateWarning(JComponent parent, String title, String text){
-        JOptionPane.showMessageDialog(parent, text, title, JOptionPane.WARNING_MESSAGE);
+    public static void CreateDialog(Windows parent, SubwindowOption type, String title, String text){
+        switch(type){
+            case WARNING:
+                JOptionPane.showMessageDialog(parent, text, title, JOptionPane.WARNING_MESSAGE);
+                break;
+            case INFO:
+                JOptionPane.showMessageDialog(parent, text, title, JOptionPane.INFORMATION_MESSAGE);
+            case ERROR:
+                JOptionPane.showMessageDialog(parent, text, title, JOptionPane.ERROR_MESSAGE);
+            default:
+                break;
+                
+            }
+    }
+
+
+    enum SubwindowOption{
+        WARNING,
+        INFO,
+        ERROR
     }
 
     //accessor
@@ -419,5 +387,58 @@ public class Windows extends JFrame{
     public boolean isCreated(){
         return created;
     }
+    enum direct{
+        CENTER,
+        NORTH,
+        SOUTH,
+        EAST,
+        WEST,
+        NORTHWEST,
+        NORTHEAST,
+        SOUTHWEST,
+        SOUTHEAST,
+    }
+
+    //TODO: outdated doc
+        /**
+         * Sets the alignment of this panel within its parent using a simple
+         * alignment code. See {@link #setAnchor(String)} documentation in
+         * {@link Panels} for the mapping between codes and positions.
+         *
+         * @param alignment cardinal alignment code (e.g. "C", "N", "SW")
+         */
+        public static void setAnchor(JComponent comp, direct alignment) {
+            switch (alignment) {
+                case CENTER:
+                    comp.setAlignmentX(CENTER_ALIGNMENT);
+                    comp.setAlignmentY(CENTER_ALIGNMENT);
+                    break;
+                case NORTHWEST:
+                    comp.setAlignmentX(TOP_ALIGNMENT);
+                    comp.setAlignmentY(RIGHT_ALIGNMENT);
+                    break;
+                case NORTH:
+                    comp.setAlignmentX(CENTER_ALIGNMENT);
+                    comp.setAlignmentY(TOP_ALIGNMENT);
+                    break;
+                case NORTHEAST:
+                    comp.setAlignmentX(TOP_ALIGNMENT);
+                    comp.setAlignmentY(LEFT_ALIGNMENT);
+                    break;
+                case EAST:
+                    comp.setAlignmentX(RIGHT_ALIGNMENT);
+                    comp.setAlignmentY(CENTER_ALIGNMENT);
+                case SOUTHEAST:
+                case SOUTH:
+                    comp.setAlignmentX(CENTER_ALIGNMENT);
+                    comp.setAlignmentY(BOTTOM_ALIGNMENT);
+                    break;
+                case SOUTHWEST:
+                case WEST:
+                    comp.setAlignmentX(LEFT_ALIGNMENT);
+                    comp.setAlignmentY(CENTER_ALIGNMENT);
+                    break;
+            }
+        }
 
 }

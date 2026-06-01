@@ -4,7 +4,7 @@ import boogle.core.Launcher.GameOptions;
 import boogle.core.GameUI;
 import boogle.core.Launcher;
 import boogle.ui.tui.TextUI;
-//import boogle.ui.gui.GraphicalUI;
+import boogle.ui.gui.GraphicalUI;
 
 /**
  * Entry point for the Boogle application. This class is responsible for
@@ -61,10 +61,10 @@ public class Main {
             } break;
 
             case "gui": {
-              //System.out.println("NOTICE: testing only (WIP)");
-              //ui = new GraphicalUI();
-                throw new UnsupportedOperationException("GUI doesnt compile so i disabled it for now");
-            }
+              System.out.println("NOTICE: testing only (WIP)");
+              ui = new GraphicalUI();
+                //throw new UnsupportedOperationException("GUI doesnt compile so i disabled it for now");
+            }break;
 
             default: {
                 System.err.printf("Unknown UI type '%s'\n", args[0]);
@@ -74,7 +74,7 @@ public class Main {
                 System.exit(1);
             } break;
         }
-
+        
         try (ui) {
             GameOptions options = new GameOptions();
             options.playerlist = new ArrayList<>();

@@ -2,6 +2,7 @@ package boogle.ui.gui;
 
 import boogle.core.*;
 import boogle.core.Launcher.GameOptions;
+import boogle.core.Player.Move;
 import boogle.player.AIPlayer;
 import boogle.player.UIPlayer;
 import boogle.sound.GameSound;
@@ -10,17 +11,18 @@ import javax.sound.sampled.Clip;
 import javax.swing.*;
 
 import java.awt.*;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
+import java.io.FileInputStream;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Flow;
 
+
+//hi welcome to hell (efficiency is no longer a consideration (mostly))
 
 /**
  * Experimental graphical user interface for Boogle. This implementation
@@ -30,14 +32,22 @@ import java.util.concurrent.CompletableFuture;
  * invoked.
  */
 public class GraphicalUI implements GameUI{
-    /** Flag set when the user has configured the game and pressed Start. */
-    private boolean ready=false;
     /** Currently playing audio clip, used to manage music and sound effects. */
     private Clip audio;
 
     private String CurrentPlayer;
 
-    boolean autoConfirm;
+    /** When {@code true} the UI skips confirmation prompts and sleeps briefly. */
+    private enum Speed{
+        Fast,
+        Normal,
+        OFF,
+    }
+    private Speed autoConfirm = Speed.Normal;
+    /** When {@code true} background music is played during the lobby and game. */
+    private boolean playMusic = false;
+    /** When {@code true} sound effects are played on certain events. */
+    private boolean playSfx = false;
 
     /*
     naming convention:
@@ -59,13 +69,9 @@ public class GraphicalUI implements GameUI{
         public void keyTyped(KeyEvent e) {
         }
         public void keyPressed(KeyEvent e) {
-                if(e.getKeyCode()==KEY){
-               
-            }
         }
-
         public void keyReleased(KeyEvent e) {
-            
+            if(e.getKeyCode()==KEY){}
         }
         
     };
@@ -87,9 +93,11 @@ public class GraphicalUI implements GameUI{
             //GameSound.ok();
             return true;
         }
-        Windows.CreateWarning(null, "Settings Missing", "Players Missing\nPlease Open Settings to Add Players");
+        Windows.CreateDialog(null,Windows.SubwindowOption.WARNING, "Settings Missing", "Players Missing\nPlease Open Settings to Add Players");
         return false;
     }
+
+    private GameOptions gameoptions;
     /**
      * Returns a human‑readable description of the supplied player’s type.
      *
@@ -152,40 +160,44 @@ public class GraphicalUI implements GameUI{
      */
     private void CreateMenu(GameOptions options,CompletableFuture<Boolean> start){
         MainMenu.windowSize(true);
-        MainMenu.Created();
         MainMenu.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        MainMenu.AddPanel("MAIN", "LAYOUT", new BoxLayout(Game, BoxLayout.Y_AXIS));
-        MainMenu.AddPanel("LAYOUT","TITLE",new FlowLayout());
-        MainMenu.Panel("TITLE").AddText("title", "BOOGLE");
-        MainMenu.Panel("TITLE").GetItem("title").setFont(new Font("Ariel",Font.BOLD,100));
-        MainMenu.AddPanel("LAYOUT", "PLAYERLIST", new BoxLayout(Game,BoxLayout.Y_AXIS));
-        
-        MainMenu.AddPanel("LAYOUT", "SETTINGS", new FlowLayout());
-        MainMenu.Panel("SETTINGS").AddButton("settings","Settings",e->{
-            if(Settings.isCreated()){
-                Settings.setVisible(true);
-            }else{
-                CreateSettings(options);
-            }
-        });
-        MainMenu.Panel("SETTINGS").AddButton("start", "Start", e ->{ready = startCheck(options);
-            start.complete(true);
-        });
-        MainMenu.Panel("SETTINGS").AddButton( "quit","Quit",e ->{System.exit(0);});
 
+        if(!MainMenu.isCreated()){
+            MainMenu.AddPanel("MAIN", "LAYOUT", new BoxLayout(Game, BoxLayout.Y_AXIS));
+            MainMenu.AddPanel("LAYOUT","TITLE",new FlowLayout());
+            MainMenu.Panel("LAYOUT").AddText("warning", "Please Proceed to Settings to set up the Game!");
+            MainMenu.AddPanel("LAYOUT", "SETTINGS", new FlowLayout());
+            MainMenu.Panel("SETTINGS").AddButton("settings","Settings",e->{
+                CreateSettings(options,start);
+            });
+            MainMenu.Panel("TITLE").AddText("title", "BOOGLE");
+            MainMenu.Panel("TITLE").GetItem("title").setFont(new Font("Ariel",Font.BOLD,100));
+            MainMenu.Panel("SETTINGS").AddButton("start", "Start", null);
+            MainMenu.Panel("SETTINGS").AddButton( "quit","Quit",null);
+        }
+        ((JButton)MainMenu.Panel("SETTINGS").GetItem("quit")).addActionListener(e->{
+                start.complete(false);
+                MainMenu.dispose();
+        });
+        ((JButton)MainMenu.Panel("SETTINGS").GetItem("start")).addActionListener(e ->{
+            if(startCheck(options)){
+                start.complete(true);
+                MainMenu.dispose();
+        }});
+        
+        MainMenu.Created();
     }
 
 
-
-    //TODO: settings option
     //settings button methods
     //update playerlist
-    //@SuppressWarnings("unchecked") //combobox warnings got annoying
+    @SuppressWarnings("unchecked") //combobox warnings got annoying
     private void reEvalPlayerlist(GameOptions options){
         Settings.Panel("PLAYERLIST").Clear();
         ((JComboBox<?>)Settings.Panel("REMOVE").GetItem("Players")).removeAllItems();
         ((JComboBox<?>)Settings.Panel("SWAP").GetItem("FROM")).removeAllItems();
         ((JComboBox<?>)Settings.Panel("SWAP").GetItem("TO")).removeAllItems();
+        ((JComboBox<?>)Settings.Panel("RENAME").GetItem("player")).removeAllItems();
         Settings.Panel("PLAYERLIST").AddText("playerlist","Current Players: ");
         int i=0;
         for(Player players: options.playerlist){
@@ -199,27 +211,75 @@ public class GraphicalUI implements GameUI{
             ((JComboBox<String>)Settings.Panel("REMOVE").GetItem("Players")).addItem(Integer.toString(i+1));
             ((JComboBox<String>)Settings.Panel("SWAP").GetItem("FROM")).addItem(Integer.toString(i+1));
             ((JComboBox<String>)Settings.Panel("SWAP").GetItem("TO")).addItem(Integer.toString(i+1));
+            ((JComboBox<String>)Settings.Panel("RENAME").GetItem("player")).addItem(Integer.toString(i+1));
             i++;
         }
         if(i==0){
             ((JComboBox<?>)Settings.Panel("REMOVE").GetItem("Players")).addItem(null);
-            ((JComboBox<String>)Settings.Panel("SWAP").GetItem("FROM")).addItem(null);
-            ((JComboBox<String>)Settings.Panel("SWAP").GetItem("TO")).addItem(null);
+            ((JComboBox<?>)Settings.Panel("SWAP").GetItem("FROM")).addItem(null);
+            ((JComboBox<?>)Settings.Panel("SWAP").GetItem("TO")).addItem(null);
+            ((JComboBox<?>)Settings.Panel("RENAME").GetItem("player")).addItem(null);
         }
-        ((JComboBox<?>)Settings.Panel("REMOVE").GetItem("Players")).setSelectedIndex(0);
         Settings.Panel("PLAYERLIST").add(Box.createVerticalGlue());
         Settings.Panel("PLAYERLIST").revalidate();
         Settings.Panel("PLAYERLIST").repaint();
     }
-    private String[] playlistString(GameOptions options){
-        if(options.playerlist.size()>0){
-        String[] playerlist = new String[options.playerlist.size()];
-        Arrays.setAll(playerlist, i -> Integer.toString(i));
-        return playerlist;}
-        else{
-            return new String[1];
+
+    private void SettingsChange(GameOptions options,String boardpath, int winScore,int MinLength,String Auto,String Music, String SFX ){    
+        try { 
+            
+            if (options.winScore < 0){
+                throw new IllegalArgumentException("Win Score");
+            } else{
+                options.winScore=winScore;
+            }
+            
+            if (options.minWordLength < 0){
+                throw new IllegalArgumentException("Min Score");
+            }else{
+                options.minWordLength = MinLength;
+            }
+            
+            if (boardpath.isEmpty()) {
+                    options.customBoard = null;
+            }else{
+            char[][] customBoard = Launcher.loadGameboardFile(boardpath);
+                if (customBoard != null) {
+                    options.customBoard = customBoard;
+                }else{throw new IOException(boardpath);}
+            }
+            switch(Auto){
+                case "FAST":
+                    autoConfirm=Speed.Fast;
+                    break;
+                case "NORMAL":
+                    autoConfirm=Speed.Normal;
+                    break;
+                case "OFF":
+                    autoConfirm=Speed.OFF;
+                    break;
+            }
+            if(Music.equals("ON")){
+                if (!this.playMusic) {
+                    this.playMusic = true;
+                    this.audio = GameSound.lobby();
+                }else{
+                    this.playMusic=false;
+                }
+            }
+            if(SFX.equals("ON")){
+                playSfx = true;
+            }else{
+                playSfx=false;
+            }
+            Windows.CreateDialog(Settings,Windows.SubwindowOption.INFO,"Success", "Game Settings Successfully set");
+        }catch(IllegalArgumentException e){
+            Windows.CreateDialog(Settings,Windows.SubwindowOption.ERROR, "Invalid Argument", "Invalid Argument Detected"
+            +"\n{winScore>0}\n{MinWord}\nerror:"+e.getMessage());
+        }catch(IOException e){
+            Windows.CreateDialog(Settings,Windows.SubwindowOption.ERROR, "File Access Error", "Can't Access file:\n"+e.getMessage());
         }
-    }    
+    }
 
     //settings window
     /**
@@ -229,59 +289,72 @@ public class GraphicalUI implements GameUI{
      *
      * @param options game options to modify
      */
-    private void CreateSettings(GameOptions options){
-        Settings.Created();
+    private void CreateSettings(GameOptions options,CompletableFuture<Boolean> start){
         Settings.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        //layout
-        //Settings.windowSize((int)(Windows.getScreenSize().getWidth()/1.5),(int)Windows.getScreenSize().getHeight());
-        //title
-        Settings.AddPanel("MAIN","LAYOUT", new GridBagLayout());
-        Settings.AddPanel("LAYOUT", "SETTINGS",new BoxLayout(Settings, BoxLayout.Y_AXIS));
-        Settings.AddPanel("LAYOUT", "PLAYERLIST", new BoxLayout(Settings, BoxLayout.Y_AXIS));
-       
-       
-        Settings.Panel("SETTINGS").AddText("title", "Settings");
+        //title+layout
+        if(!Settings.isCreated()){
+            Settings.AddPanel("MAIN","LAYOUT", new FlowLayout());
+            Settings.AddPanel("LAYOUT", "SETTINGS",new BoxLayout(Settings, BoxLayout.Y_AXIS));
+            Settings.AddPanel("LAYOUT", "PLAYERLIST", new BoxLayout(Settings, BoxLayout.Y_AXIS));
+            Settings.Panel("SETTINGS").AddText("title", "Settings");
+            Settings.Panel("SETTINGS").AddText("notice", "NOTICE: all settings Sections are saved individually");
+            Settings.Panel("SETTINGS").AddText( "addplayertitle", "Add Player:");
+            Settings.AddPanel("SETTINGS", "PLAYERS",new FlowLayout());
+        }
         Settings.Panel("SETTINGS").GetItem("title").setFont(new Font("Ariel",Font.BOLD,30));
-        Settings.Panel("SETTINGS").setAnchor("THIS","N");
-        Settings.Panel("PLAYERLIST").setAnchor("THIS","NW");
+        Settings.Panel("SETTINGS").GetItem("notice").setFont(new Font("Ariel",Font.ITALIC,15));
+        Windows.setAnchor(Settings.Panel("SETTINGS").GetItem("notice"),Windows.direct.CENTER);
+        Windows.setAnchor(Settings.Panel("SETTINGS"),Windows.direct.NORTH);
+        Windows.setAnchor(Settings.Panel("PLAYERLIST"),Windows.direct.NORTHWEST);
         //settings
-        //player 
-        Settings.Panel("SETTINGS").AddText( "players", "Players:");
-        Settings.AddPanel("SETTINGS", "PLAYERS",new FlowLayout());
 
-        //playerlist
+        //player 
+        if(!Settings.isCreated()){
         Settings.Panel("PLAYERS").AddComboBox("PlayerSettingType", new String[]{"Human","AI"});
         Settings.Panel("PLAYERS").AddText("settingsplayernamelabel", "Name");
         Settings.Panel("PLAYERS").AddTextField("PlayerSettingName", 10);
         Settings.Panel("PLAYERS").AddText("settingsailevel", "ai level (ignored if human):");
         Settings.Panel("PLAYERS").AddComboBox("PlayerSettingLevel",new String[]{"1","2","3","4","5"});
-        Settings.Panel("PLAYERS").AddButton("PlayerSettingSubmit","Submit",e->{
+        Settings.Panel("PLAYERS").AddButton("PlayerSettingSubmit","Submit",null);
+        }
+        ((JButton)Settings.Panel("PLAYERS").GetItem("PlayerSettingSubmit")).addActionListener(e->{
             validatePlayer(options,
             Settings.Panel("PLAYERS").GetItemText("PlayerSettingType"),
             Settings.Panel("PLAYERS").GetItemText("PlayerSettingName"),
             Settings.Panel("PLAYERS").GetItemText("PlayerSettingLevel")
         );
-        reEvalPlayerlist(options);
-        }); 
-
+            reEvalPlayerlist(options);
+            if (this.playSfx) GameSound.ok();
+        });
+         
         //update players
+        if(!Settings.isCreated()){
+        Settings.Panel("SETTINGS").AddText( "playersettingstitle", "Player Settings");
         Settings.AddPanel("SETTINGS", "REMOVE",new FlowLayout());
+        Settings.Panel("REMOVE").Clear();
         Settings.Panel("REMOVE").AddText("remove player","Remove Player");
-        Settings.Panel("REMOVE").AddComboBox("Players",playlistString(options));
-        Settings.Panel("REMOVE").AddButton("removeConfirm", "REMOVE",e->{
+        Settings.Panel("REMOVE").AddComboBox("Players",new String[1]);
+        Settings.Panel("REMOVE").AddButton("removeConfirm", "REMOVE",null);
+        }
+        ((JButton)Settings.Panel("REMOVE").GetItem("removeConfirm")).addActionListener(e->{
             try{
                 options.playerlist.remove(Integer.parseInt(Settings.Panel("REMOVE").GetItemText("Players"))-1);
                 reEvalPlayerlist(options);
-            }catch(NullPointerException n){
+                if (this.playSfx) GameSound.ok();
+            }catch(Exception n){
             }
         });
         //swap player positions
+        if(!Settings.isCreated()){
         Settings.AddPanel("SETTINGS","SWAP",new FlowLayout());
+        Settings.Panel("SWAP").Clear();
         Settings.Panel("SWAP").AddText("Swap", "Swap:");
-        Settings.Panel("SWAP").AddComboBox("FROM", playlistString(options));
+        Settings.Panel("SWAP").AddComboBox("FROM", new String[1]);
         Settings.Panel("SWAP").AddText("text", "to");
-        Settings.Panel("SWAP").AddComboBox("TO", playlistString(options));
-        Settings.Panel("SWAP").AddButton("SWAPCONFIRM", "Swap!", e->{
+        Settings.Panel("SWAP").AddComboBox("TO", new String[1]);
+        Settings.Panel("SWAP").AddButton("SWAPCONFIRM", "Swap!",null); 
+        }
+        ((JButton)Settings.Panel("SWAP").GetItem("SWAPCONFIRM")).addActionListener(e->{
             try{
                 int from = Integer.parseInt(Settings.Panel("SWAP").GetItemText("FROM"))-1;
                 int to =  Integer.parseInt(Settings.Panel("SWAP").GetItemText("TO"))-1;
@@ -289,19 +362,108 @@ public class GraphicalUI implements GameUI{
 
                 options.playerlist.remove(from);
                 options.playerlist.add(to, target);
-                //if (this.playSfx) GameSound.ok();
-            reEvalPlayerlist(options);
-            }catch(NullPointerException n){
+                if (this.playSfx) GameSound.ok();
+                reEvalPlayerlist(options);
+            }catch(Exception n){
             }
         });
         
         //rename
+        if(!Settings.isCreated()){
         Settings.AddPanel("SETTINGS", "RENAME", new FlowLayout());
+        Settings.Panel("RENAME").Clear();
         Settings.Panel("RENAME").AddText("rename", "Rename: player#");
-        Settings.Panel("RENAME").AddComboBox("player", playlistString(options));
+        Settings.Panel("RENAME").AddComboBox("player", new String[1]);
         Settings.Panel("RENAME").AddTextField("newName", 10);
+        Settings.Panel("RENAME").AddButton("confirm", "Rename",null);
+        } 
+        ((JButton)Settings.Panel("RENAME").GetItem("confirm")).addActionListener(e->{
+            try{
+            options.playerlist.get(Integer.parseInt(Settings.Panel("RENAME").GetItemText("player"))-1).setName(
+                Settings.Panel("RENAME").GetItemText("newName"));
+            reEvalPlayerlist(options);
+            if (this.playSfx) GameSound.ok();
+        }catch(Exception n){}
+        });
 
+        //game settings
+        if(!Settings.isCreated()){
+        Settings.Panel("SETTINGS").AddText("GameSettings", "Game Settings");
+        Settings.Panel("SETTINGS").AddText("CurrentSettings", "");
+        Settings.AddPanel("SETTINGS","BOARD",new FlowLayout());
+        Settings.AddPanel("SETTINGS", "WINSCORE", new FlowLayout());
+        Settings.AddPanel("SETTINGS","AUTOCONFIRM",new FlowLayout());
+        Settings.AddPanel("SETTINGS","MINWORDLENGTH",new FlowLayout());
+        Settings.AddPanel("SETTINGS","MUSIC" , new FlowLayout());
+        Settings.AddPanel("SETTINGS", "SFX", new FlowLayout());
+        Settings.Panel("SETTINGS").AddButton("GAMEOPTIONSUBMIT", "Submit Game Settings", null);
+        Windows.setAnchor(Settings.Panel("SETTINGS").GetItem("GAMEOPTIONSUBMIT"), Windows.direct.CENTER);
         
+        Settings.Panel("BOARD").AddText("", "BOARD PATH (leave blank for random):");
+        Settings.Panel("BOARD").AddTextField("BOARDPATH", 12);
+
+        Settings.Panel("WINSCORE").AddText("", "Win Score:");
+        Settings.Panel("WINSCORE").AddTextField("WinScore", 4);
+        
+        Settings.Panel("AUTOCONFIRM").AddText("", "Auto Confirm");
+        Settings.Panel("AUTOCONFIRM").AddComboBox("AUTOCONFIRM", new String[]{"OFF","NORMAL","FAST"});
+
+        Settings.Panel("MUSIC").AddText("", "Music:");
+        Settings.Panel("MUSIC").AddComboBox("MusicStat", new String[]{"OFF","ON"});
+
+        Settings.Panel("SFX").AddText("", "Sfx: ");
+        Settings.Panel("SFX").AddComboBox("SFXStat", new String[]{"OFF","ON"});
+        
+        Settings.Panel("MINWORDLENGTH").AddText("", "Min Word Length:");
+        Settings.Panel("MINWORDLENGTH").AddTextField("MinWord", 4);
+        }
+        ((JButton)Settings.Panel("SETTINGS").GetItem("GAMEOPTIONSUBMIT")).addActionListener(e->{
+            try{
+                int winscore=0;
+                int minlength=0;
+                if(!Settings.Panel("WINSCORE").GetItemText("WinScore").isEmpty()){
+                    winscore=Integer.parseInt(Settings.Panel("WINSCORE").GetItemText("WinScore"));
+                }
+                if(!Settings.Panel("MINWORDLENGTH").GetItemText("MinWord").isEmpty()){
+                    minlength=Integer.parseInt(Settings.Panel("MINWORDLENGTH").GetItemText("MinWord"));
+                }
+                SettingsChange(options,
+                    Settings.Panel("BOARD").GetItemText("BOARDPATH"),
+                    winscore,minlength,
+                    Settings.Panel("AUTOCONFIRM").GetItemText("AUTOCONFIRM"),
+                    Settings.Panel("MUSIC").GetItemText("MusicStat"),
+                    Settings.Panel("SFX").GetItemText("SFXStat")
+                );
+            }catch(Exception n){
+                Windows.CreateDialog(null,Windows.SubwindowOption.WARNING, "Argument Error", "There was an error Parsing field\nPlease try Again\nError Cause: "+n.getMessage());
+            }
+        });
+
+        //loading 
+        if(!Settings.isCreated()){
+            Settings.Panel("SETTINGS").AddText("LOADTITLE", "Load Game");
+            Settings.AddPanel("SETTINGS", "LOAD", new FlowLayout());
+            Settings.Panel("LOAD").AddText("loadtitle", "Load File Path:");
+            Settings.Panel("LOAD").AddTextField("SAVEPATH", 12);
+            Settings.Panel("LOAD").AddButton("LOADBUTTON", "Load", null);
+        }
+        ((JButton)Settings.Panel("LOAD").GetItem("LOADBUTTON")).addActionListener(e->{
+            try{
+                options.replacement = Launcher.fromSerialized(new FileInputStream(
+                    Settings.Panel("LOAD").GetItemText("SAVEPATH")), this);
+                    Windows.CreateDialog(Settings, Windows.SubwindowOption.INFO, "Success", "Loading Success!");
+                    start.complete(true);
+                    if (this.playSfx) GameSound.ok();
+            }catch(IOException n){
+                Windows.CreateDialog(Settings,Windows.SubwindowOption.ERROR,"Unable to load",n.getMessage());
+
+            }catch(ClassNotFoundException n){
+                Windows.CreateDialog(Settings,Windows.SubwindowOption.ERROR,"Save File not Compatible",n.getMessage());
+            }
+        });
+ 
+
+        Settings.Created();
         Settings.pack();
         Settings.windowSize(Settings.getWidth()+500,Settings.getHeight());
         Settings.setVisible(true);
@@ -310,7 +472,22 @@ public class GraphicalUI implements GameUI{
     //Game Window
     //TODO: FIX LAYOUT
     private void CreateGameWindow(Gameboard board, List<Entry<String, Integer>> leaderboard, ArrayList<String> playedWords, String currentPlayerName){
-        Game.Created();
+        char[][] boardChar = board.board;
+        if(!Game.isCreated()){
+            Game.AddPanel("MAIN", "LAYOUT", new GridBagLayout());
+            Game.AddPanel("LAYOUT", "BOARD",new GridLayout(boardChar.length,boardChar[0].length,10,10));
+            Game.Panel("LAYOUT").AddText("PLAYEDWORDSTITLE", "Played Words");
+            Game.AddPanel("LAYOUT", "PLAYEDWORDS",new GridLayout(0,10));
+            Game.AddPanel("LAYOUT", "LEADERBOARD",new GridLayout(0,2));
+            Game.AddPanel("LAYOUT","TURNSTATUS", new BoxLayout(Game, BoxLayout.Y_AXIS));
+            Game.Panel("LAYOUT").AddText("TurnName","");
+            Game.AddPanel("LAYOUT","STATUS",new FlowLayout());
+        }else{
+            Game.Panel("LEADERBOARD").Clear();
+            Game.Panel("LEADERBOARD").setLayout(new GridLayout(0,2));
+            Game.Panel("BOARD").Clear();
+            Game.Panel("BOARD").setLayout(new GridLayout(boardChar.length,boardChar[0].length,10,10));
+        }
         Game.windowSize(true);
         Game.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         //close behavior
@@ -318,74 +495,115 @@ public class GraphicalUI implements GameUI{
         Game.addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
                 int confirmed = JOptionPane.showConfirmDialog(Game, 
-                    "Closing Window Will exit program\nPlease use exit button to exit Current Game", "Exit Confirmation",
+                    "Closing Window Will exit program", "Exit Confirmation",
                     JOptionPane.YES_NO_OPTION);
-
                 if (confirmed == JOptionPane.YES_OPTION) {
                     System.exit(0);
                 }
             }
         });
 
-        Game.AddPanel("MAIN", "LAYOUT", new GridBagLayout());
-        char[][] boardChar = board.board;
-        Game.AddPanel("LAYOUT", "BOARD",new GridLayout(boardChar.length,boardChar[0].length,10,10));
-        Game.Panel("LAYOUT").SetConstraint(Game.Panel("BOARD"), new GridBagConstraints(
-            0,0,5,5,1,1,
-            GridBagConstraints.NORTHWEST,
-            GridBagConstraints.NONE,
-            new Insets(20, 20, 0, 0),
-            10,10
-        ));
+        //gameboard
         for(int row =0;row<boardChar.length;row++){
             for(int col=0;col<boardChar[0].length;col++){
                 String id = Integer.toString(row)+Integer.toString(col);
                 Game.Panel("BOARD").AddText(id,Character.toString(boardChar[row][col]));
-                Game.Panel("BOARD").setAnchor(id,"C");;
+                Windows.setAnchor(Game.Panel("BOARD").GetItem(id),Windows.direct.CENTER);
                 Game.Panel("BOARD").GetItem(id).setFont(new Font("Ariel",Font.PLAIN,50));
             }
         }
-
+        
         //leaderboard construction
-        Game.AddPanel("LAYOUT", "LEADERBOARD",new GridLayout(2,leaderboard.size()+1));
         Game.Panel("LEADERBOARD").AddText("title", "SCOREBOARD");
         Game.Panel("LEADERBOARD").AddText(null, "");
-        Game.Panel("LAYOUT").SetConstraint(Game.Panel("LEADERBOARD"),new GridBagConstraints(
-             0,1,1,1,1,1,GridBagConstraints.NORTHEAST,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0
-            ));
         for(int i=0;i<leaderboard.size();i++){
             Game.Panel("LEADERBOARD").AddText(leaderboard.get(i).getKey(), leaderboard.get(i).getKey());
             Game.Panel("LEADERBOARD").AddText(leaderboard.get(i).getKey()+"_Score","");
         }
-        Game.Panel("LAYOUT").AddText("TurnName","");
+
+        //constraints
+        //board
+        Game.Panel("LAYOUT").SetConstraint(Game.Panel("BOARD"), new GridBagConstraints(
+            0,0,5,5,0.5,0.5,
+            GridBagConstraints.NORTHWEST,
+            GridBagConstraints.NONE,
+            new Insets(20, 20, 0, 0),
+            0,0));
+         //played words
+        Game.Panel("LAYOUT").SetConstraint(Game.Panel("LAYOUT").GetItem("PLAYEDWORDSTITLE"), new GridBagConstraints(
+            7, 0, 1, 1, 0, 0, 
+            GridBagConstraints.NORTH, GridBagConstraints.NONE, new Insets(0, 0, 0, 0),
+             0, 0));
+        Game.Panel("LAYOUT").SetConstraint(Game.Panel("PLAYEDWORDS"),new GridBagConstraints(
+            7, 1, 4, 5, 1, 1, 
+            GridBagConstraints.NORTH, GridBagConstraints.VERTICAL, new Insets(0, 0, 10, 0), 
+            0, 0));
+        //leaderboard
+                Game.Panel("LAYOUT").SetConstraint(Game.Panel("LEADERBOARD"),new GridBagConstraints(
+             10,1,2,1,0,0,
+             GridBagConstraints.NORTHEAST,GridBagConstraints.VERTICAL,new Insets(0,0,0,0),
+             0,0));
+        //turn info
         Game.Panel("LAYOUT").SetConstraint(Game.Panel("LAYOUT").GetItem("TurnName"),new GridBagConstraints(
-            0,6,1,1,1,1,GridBagConstraints.CENTER,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0)
-        );
-
-        Game.AddPanel("LAYOUT","TURNSTATUS", new BoxLayout(Game, BoxLayout.Y_AXIS));
+            0,10,12,1,0,0,
+            GridBagConstraints.LAST_LINE_START,GridBagConstraints.NONE,new Insets(0,0,0,0),
+            0,0));
         Game.Panel("LAYOUT").SetConstraint(Game.Panel("TURNSTATUS"), new GridBagConstraints(
-            0,7,1,1,1,1,GridBagConstraints.CENTER,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0)
-    );
-
-        Game.AddPanel("LAYOUT","STATUS",new FlowLayout());
+            0,11,12,1,0,0,
+            GridBagConstraints.LAST_LINE_START,GridBagConstraints.NONE,new Insets(0,0,0,0),
+            0,0));
         Game.Panel("LAYOUT").SetConstraint(Game.Panel("STATUS"),new GridBagConstraints(
-            0,8,1,1,1,1,GridBagConstraints.LAST_LINE_START,GridBagConstraints.NONE,new Insets(0, 0, 0, 0),0,0)
-        );
+            0,12,12,1,0,0,
+            GridBagConstraints.LAST_LINE_START,GridBagConstraints.NONE,new Insets(0, 0, 0, 0),
+            0,0));
 
+        Game.Created();
     }
 
-    private void CreateResult(List<Entry<String, Integer>> leaderboard, int skips, int maxScore){
-        Results.Clear();
-        CompletableFuture<Boolean> toLobby = new CompletableFuture<>(); 
+    //create result screen
+    private void CreateResult(List<Entry<String, Integer>> leaderboard, int skips, int maxScore,CompletableFuture<Void> toLobby){
+        Results.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        if(!Results.isCreated()){ 
+            Results.AddPanel("MAIN", "LAYOUT", new BoxLayout(Game, BoxLayout.Y_AXIS));
+            Results.Panel("LAYOUT").AddText("title", "RESULT");
+            Windows.setAnchor(Results.Panel("LAYOUT").GetItem("title"), Windows.direct.CENTER);
+            Results.Panel("LAYOUT").GetItem("title").setFont(new Font("Ariel",Font.BOLD,50));
+            Results.AddPanel("LAYOUT", "LEADERBOARD",new GridLayout(leaderboard.size()+1,2));
+            Results.Panel("LAYOUT").AddText("seperator", "================");
+            Windows.setAnchor(Results.Panel("LAYOUT").GetItem("seperator"), Windows.direct.CENTER);
+            Results.Panel("LAYOUT").AddText("percentComplete", "");
+            Results.Panel("LAYOUT").AddText("SkipTotal", "");
+        }else{
+            Results.Panel("LEADERBOARD").Clear();
+            Results.Panel("LEADERBOARD").setLayout(new GridLayout(leaderboard.size()+1,2));
+        }
+        
+        //leaderboard construct
+        Results.Panel("LEADERBOARD").AddText("title", "LEADERBOARD:");
+        Results.Panel("LEADERBOARD").AddText(null, "");
+        int totscore=0;
+        for(int i=0;i<leaderboard.size();i++){
+            Results.Panel("LEADERBOARD").AddText(leaderboard.get(i).getKey(), leaderboard.get(i).getKey());
+            Results.Panel("LEADERBOARD").AddText(leaderboard.get(i).getKey()+"_Score",Integer.toString(leaderboard.get(i).getValue()));
+            totscore+=leaderboard.get(i).getValue();
+        }
 
-        Results.AddPanel("MAIN", "LAYOUT", new BoxLayout(Game, BoxLayout.Y_AXIS));
-        Results.AddPanel("LAYOUT", CurrentPlayer, null);
+        //completion %
+        if(maxScore==0){
+            ((JLabel)Results.Panel("LAYOUT").GetItem("percentComplete")).setText("Completion: N/A");
+        }else{
+            ((JLabel)Results.Panel("LAYOUT").GetItem("percentComplete")).setText("Completion: "+(100*totscore/maxScore)+"%");
+        }
 
-        Results.Panel("LAYOUT").AddButton("Lobby", "Continue >", e->{toLobby.complete(true);});
+        //skips
+        ((JLabel)Results.Panel("LAYOUT").GetItem("SkipTotal")).setText("Skipped turns: "+skips);
+
+        if(!Results.isCreated()){
+            Results.Panel("LAYOUT").AddButton("Lobby", "Continue >", null);
+        }
+        ((JButton)Results.Panel("LAYOUT").GetItem("Lobby")).addActionListener(e->{toLobby.complete(null);});
+        Results.Created();
         Results.pack();
-        Results.setVisible(true);
-
-        try{toLobby.get();}catch(Exception e){}
     }
 
 
@@ -401,34 +619,31 @@ public class GraphicalUI implements GameUI{
      *         been added; {@code false} otherwise
      */
     public boolean lobby(GameOptions options) {
-        ready=false;
+        gameoptions = options;
         CompletableFuture<Boolean> GameStart = new CompletableFuture<>(); 
         //title screen
-        if(!MainMenu.isCreated()){
-            CreateMenu(options,GameStart);
-        }
+        
+        CreateMenu(options,GameStart);
         MainMenu.setVisible(true);
         
-
+        
         try {
+            if (this.playMusic) audio = GameSound.lobby();
+            else audio = GameSound.nothing();
             if(GameStart.get()){
-                MainMenu.dispose();
-                return true;
-            }else{
-                return false;
+                Settings.dispose();
+                if (this.playMusic) audio = GameSound.ingame();
             }
+            return GameStart.get();
         } catch (Exception e) {
-
         }
         return false;
-
     }
     /**
      * No‑op for the graphical UI. Resources such as windows and audio clips
      * are disposed elsewhere.
      */
     public void close() throws Exception {
-        
     }
 
     /**
@@ -443,107 +658,139 @@ public class GraphicalUI implements GameUI{
      */
     public void startTurn(Gameboard board, List<Entry<String, Integer>> leaderboard, ArrayList<String> playedWords, String currentPlayerName) {
         //game window construction
-        if(!Game.isCreated()){
-            CreateGameWindow(board, leaderboard, playedWords, currentPlayerName);
-        }
+        CreateGameWindow(board, leaderboard, playedWords, currentPlayerName);
+        
         Game.Panel("TURNSTATUS").Clear();
 
         CurrentPlayer = currentPlayerName;
-        ((JLabel)Game.Panel("LAYOUT").GetItem("TurnName")).setText(currentPlayerName+"'s Turn");
+        ((JLabel)Game.Panel("LAYOUT").GetItem("TurnName")).setText(currentPlayerName+"'s Turn:");
         
         for(int i=0;i<leaderboard.size();i++){
             ((JLabel)Game.Panel("LEADERBOARD").GetItem(leaderboard.get(i).getKey()+"_Score")).setText(Integer.toString(leaderboard.get(i).getValue()));
         }
+        //played words
+        Game.Panel("PLAYEDWORDS").Clear();
+        for(String word:playedWords){
+            Game.Panel("PLAYEDWORDS").AddText(word, " "+word+" ");
+        }
+        
         Game.repaint();
         Game.setVisible(true);
-
     }
 
     /**
-     * Called when an AI player is thinking. Not implemented in the graphical
-     * UI; throws {@link UnsupportedOperationException}.
+     * Called when an AI player is thinking.
      */
     public void passive() {
         Game.Panel("STATUS").Clear();
-        Game.Panel("STATUS").AddText("CurrentAI", "Current AI "+CurrentPlayer+" is thinking");
-
+        Game.repaint();
     }
 
 
     /**
-     * Requests input from a human player. Not implemented in the graphical
-     * UI; throws {@link UnsupportedOperationException}.
-     *
-     * @return the entered word (never returns in current implementation)
+     * Requests input from a human player.
+     * 
      */
-    public String active() {
-        CompletableFuture<String> Input = new CompletableFuture<>();
+    public Player.Move active() {
+        CompletableFuture<Player.Move> Input = new CompletableFuture<>();
 
         Game.Panel("STATUS").Clear();
         Game.Panel("STATUS").AddText("Play", "Submit Word");
         Game.Panel("STATUS").AddTextField("UserInput", 18);
         Game.Panel("STATUS").AddButton("Submit","Submit",e->{
-            Input.complete(Game.Panel("STATUS").GetItemText("UserInput"));
+            Input.complete(new Move(Player.Move.Type.WORD,Game.Panel("STATUS").GetItemText("UserInput")));
         });
-        Game.Panel("STATUS").AddButton("Skip", "Skip", e->{Input.cancel(true);});
+        Game.Panel("STATUS").AddButton("Skip", "Skip", e->{Input.complete(new Move(Move.Type.SKIP));});
+        Game.Panel("STATUS").AddButton("GiveUp", "Give up", e->{Input.complete(new Move(Move.Type.LEAVE));});
+        Game.Panel("STATUS").AddText("saveTitle", "Save Game:");
+        Game.Panel("STATUS").AddTextField("SavePath", 20);
+        Game.Panel("STATUS").AddButton("SaveGame", "Save", e->{Input.complete(new Move(Move.Type.SAVE, Game.Panel("STATUS").GetItemText("SavePath")));});
+        Game.Panel("STATUS").AddButton("ExitGame","Exit",e->{Input.complete(new Move(Move.Type.STOP));});
+
         Game.revalidate();
         Game.repaint();
         try{
             return Input.get();
         }catch(Exception e){
-            return null;
+            return new Move(Move.Type.SKIP);
         }
     }
     
     /**
-     * Reports the outcome of a player’s move. Not implemented in the
-     * graphical UI; throws {@link UnsupportedOperationException}.
+     * Reports the outcome of a player’s move.
      */
     public void endTurn(TurnStatus status, String move, int scoreGained, int minWordLength) {
         Game.Panel("TURNSTATUS").AddText("TurnStatus", "");
         switch (status) {
             case OK:
                 ((JLabel)Game.Panel("TURNSTATUS").GetItem("TurnStatus")).setText(CurrentPlayer+" played the word '"+move+"' and gained "+scoreGained+" score!");
-                //if (this.playSfx) GameSound.ok();
+                if (this.playSfx) GameSound.ok();
             break;
             case SKIPPED:
                 ((JLabel)Game.Panel("TURNSTATUS").GetItem("TurnStatus")).setText(CurrentPlayer+" skipped their turn!");
-                //if (this.playSfx) GameSound.bad();
+                if (this.playSfx) GameSound.bad();
             break;
             case TOO_SHORT:
                 ((JLabel)Game.Panel("TURNSTATUS").GetItem("TurnStatus")).setText("Word too short! Minimal word length is" + minWordLength);
-                //if (this.playSfx) GameSound.bad();
-                
+                if (this.playSfx) GameSound.bad();  
             break;
             case DUPLICATE:
                 ((JLabel)Game.Panel("TURNSTATUS").GetItem("TurnStatus")).setText("This word was already played! Try a different one.");
-                //if (this.playSfx) GameSound.bad();
+                if (this.playSfx) GameSound.bad();
             break;
             case NOT_IN_DICT:
                 ((JLabel)Game.Panel("TURNSTATUS").GetItem("TurnStatus")).setText("Word not in wordlist! Try a different one.");
-                //if (this.playSfx) GameSound.bad();
+                if (this.playSfx) GameSound.bad();
             break;
             case NOT_ON_BOARD:
                 ((JLabel)Game.Panel("TURNSTATUS").GetItem("TurnStatus")).setText("Word does not exist on board! Try a different one");
-                //if (this.playSfx) GameSound.bad();
+                if (this.playSfx) GameSound.bad();
             break;
+            case STOPPED:
+                ((JLabel)Game.Panel("TURNSTATUS").GetItem("TurnStatus")).setText("Exiting Game...");
+                if (this.playSfx) GameSound.bad();
+                break;
+            case SAVE_ERR:
+                ((JLabel)Game.Panel("TURNSTATUS").GetItem("TurnStatus")).setText("Error Saving Game "+move);
+                if (this.playSfx) GameSound.bad();
+                break;
+            case SAVE_OK:
+                ((JLabel)Game.Panel("TURNSTATUS").GetItem("TurnStatus")).setText("Save Game Successful!");
+                if (this.playSfx) GameSound.ok();
+                break;
+            case PLAYER_LEFT:
+                ((JLabel)Game.Panel("TURNSTATUS").GetItem("TurnStatus")).setText("Player "+ this.CurrentPlayer+" Left the game");
+                if (this.playSfx) GameSound.bad();
+                break;
+            default:
+                break;
         }
     }
     
     /**
-     * Waits for the user to acknowledge the end of a turn. Not implemented
-     * in the graphical UI; throws {@link UnsupportedOperationException}.
+     * Waits for the user to acknowledge the end of a turn.
      */
     public void confirm() {
-        if (this.autoConfirm) {
-            try { Thread.sleep(1000); }
+        int speed=0;
+        switch(autoConfirm){
+            case Fast:
+                speed=50;
+                break;
+            case Normal:
+                speed=1000;
+                break;
+            default:
+                break;
+        }
+        if (autoConfirm!=Speed.OFF) {
+            try { Thread.sleep(speed); }
             catch (InterruptedException e) {
                 e.printStackTrace();
                 System.exit(-1);
             }
         } else {
-            CompletableFuture<Boolean> enter = new CompletableFuture<>();
-            Game.Panel("TURNSTATUS").AddButton("ConfirmButton", "Continue >", e->{enter.complete(true);});
+            CompletableFuture<Void> enter = new CompletableFuture<>();
+            Game.Panel("TURNSTATUS").AddButton("ConfirmButton", "Continue >", e->{enter.complete(null);});
             Game.revalidate();
             Game.repaint();
             try{
@@ -553,23 +800,24 @@ public class GraphicalUI implements GameUI{
     }
     
 
-    public void confirmForSure() {
-        //not needed cuz gui blocking
+    public void confirmForSure() {        
     }
 
     
     /**
-     * Displays the final results screen. Not implemented in the graphical UI;
-     * throws {@link UnsupportedOperationException}.
+     * Displays the final results screen.
      */
     public void results(List<Entry<String, Integer>> leaderboard, int skips, int maxScore) {
-        // TODO Auto-generated method stub
-        CreateResult(leaderboard, skips, maxScore);
-
         Game.dispose();
-        
-
-        throw new UnsupportedOperationException("Unimplemented method 'results'");
+        CompletableFuture<Void> toLobby = new CompletableFuture<>();
+        audio.stop();
+        if (this.playMusic) audio = GameSound.results();
+        CreateResult(leaderboard, skips, maxScore,toLobby);
+        Results.setVisible(true);
+        try{toLobby.get();
+            Results.dispose();
+        }catch(Exception e){
+        }
     }
     
 }
