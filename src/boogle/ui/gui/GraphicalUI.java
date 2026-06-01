@@ -98,7 +98,6 @@ public class GraphicalUI implements GameUI{
         }
     }
 
-    private GameOptions gameoptions;
     /**
      * Returns a human‑readable description of the supplied player’s type.
      *
@@ -141,7 +140,6 @@ public class GraphicalUI implements GameUI{
      * @param level difficulty level for AI players, ignored for humans
      */
     private void validatePlayer(GameOptions options,String type, String name, String level){
-        new Throwable().printStackTrace();
         switch(type){
             case "AI":    
                 options.playerlist.add(new AIPlayer(name, boogle.player.AIPlayer.Level.fromValue(Integer.parseInt(level))));
@@ -632,7 +630,6 @@ public class GraphicalUI implements GameUI{
      *         been added; {@code false} otherwise
      */
     public boolean lobby(GameOptions options) {
-        gameoptions = options;
         CompletableFuture<Boolean> GameStart = new CompletableFuture<>(); 
         //title screen
         
