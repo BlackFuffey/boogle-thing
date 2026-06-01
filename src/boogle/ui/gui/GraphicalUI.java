@@ -56,13 +56,13 @@ public class GraphicalUI implements GameUI{
         component - lower
     */
     /** Top‑level window for the lobby screen. */
-    Windows MainMenu = new Windows("lobby");
+    private Windows MainMenu = new Windows("lobby");
     /** Window used during the game to show the board and scores. */
-    Windows Game = new Windows("Game");
+    private Windows Game = new Windows("Game");
     /** Dialog for configuring players and options. */
-    Windows Settings = new Windows("Settings");
+    private Windows Settings = new Windows("Settings");
     /** Window for displaying final results. */
-    Windows Results = new Windows("Results");
+    private Windows Results = new Windows("Results");
 
 
 
@@ -455,11 +455,15 @@ public class GraphicalUI implements GameUI{
             Settings.Panel("SETTINGS").AddText("LOADTITLE", "Load Game");
             Settings.AddPanel("SETTINGS", "LOAD", new FlowLayout());
             Settings.Panel("LOAD").AddText("loadtitle", "Load File Path:");
-            Settings.Panel("LOAD").AddTextField("SAVEPATH", 12);
+            Settings.Panel("LOAD").AddTextField("SAVEPATH", 18);
             Settings.Panel("LOAD").AddButton("LOADBUTTON", "Load", null);
         }
         setActionListener(Settings.Panel("LOAD").GetItem("LOADBUTTON"),(e->{
             try{
+                if(Settings.Panel("LOAD").GetItemText("SAVEPATH").isEmpty()){
+                    //empty error popup was kinda funny
+                    throw new IOException("Field is blank");
+                }
                 options.replacement = Launcher.fromSerialized(new FileInputStream(
                     Settings.Panel("LOAD").GetItemText("SAVEPATH")), this);
                     Windows.CreateDialog(Settings, Windows.SubwindowOption.INFO, "Success", "Loading Success!");
@@ -467,7 +471,6 @@ public class GraphicalUI implements GameUI{
                     if (this.playSfx) GameSound.ok();
             }catch(IOException n){
                 Windows.CreateDialog(Settings,Windows.SubwindowOption.ERROR,"Unable to load",n.getMessage());
-
             }catch(ClassNotFoundException n){
                 Windows.CreateDialog(Settings,Windows.SubwindowOption.ERROR,"Save File not Compatible",n.getMessage());
             }
@@ -535,7 +538,7 @@ public class GraphicalUI implements GameUI{
         //constraints
         //board
         Game.Panel("LAYOUT").SetConstraint(Game.Panel("BOARD"), new GridBagConstraints(
-            0,0,5,5,0.5,0.5,
+            0,0,5,5,0,0,
             GridBagConstraints.NORTHWEST,
             GridBagConstraints.NONE,
             new Insets(20, 20, 0, 0),
