@@ -64,17 +64,6 @@ public class GraphicalUI implements GameUI{
     /** Window for displaying final results. */
     Windows Results = new Windows("Results");
 
-    KeyListener enter = new KeyListener() {
-        final int KEY= KeyEvent.VK_ENTER;
-        public void keyTyped(KeyEvent e) {
-        }
-        public void keyPressed(KeyEvent e) {
-        }
-        public void keyReleased(KeyEvent e) {
-            if(e.getKeyCode()==KEY){}
-        }
-        
-    };
 
 
     //button methods
@@ -225,7 +214,7 @@ public class GraphicalUI implements GameUI{
         Settings.Panel("PLAYERLIST").repaint();
     }
 
-    private void SettingsChange(GameOptions options,String boardpath, int winScore,int MinLength,String Auto,String Music, String SFX ){    
+    private void SettingsChange(GameOptions options,String boardpath,String wordlist, int winScore,int MinLength,String Auto,String Music, String SFX ){    
         try { 
             
             if (options.winScore < 0){
@@ -248,6 +237,11 @@ public class GraphicalUI implements GameUI{
                     options.customBoard = customBoard;
                 }else{throw new IOException(boardpath);}
             }
+            if(!wordlist.isEmpty()){
+                (new FileReader(wordlist)).close();
+                options.wordlistPath = wordlist;
+            }
+
             switch(Auto){
                 case "FAST":
                     autoConfirm=Speed.Fast;
@@ -365,6 +359,7 @@ public class GraphicalUI implements GameUI{
                 if (this.playSfx) GameSound.ok();
                 reEvalPlayerlist(options);
             }catch(Exception n){
+                if (this.playSfx) GameSound.bad();
             }
         });
         
@@ -391,6 +386,7 @@ public class GraphicalUI implements GameUI{
         Settings.Panel("SETTINGS").AddText("GameSettings", "Game Settings");
         Settings.Panel("SETTINGS").AddText("CurrentSettings", "");
         Settings.AddPanel("SETTINGS","BOARD",new FlowLayout());
+        Settings.AddPanel("SETTINGS","WORDLIST",new FlowLayout());
         Settings.AddPanel("SETTINGS", "WINSCORE", new FlowLayout());
         Settings.AddPanel("SETTINGS","AUTOCONFIRM",new FlowLayout());
         Settings.AddPanel("SETTINGS","MINWORDLENGTH",new FlowLayout());
@@ -400,7 +396,10 @@ public class GraphicalUI implements GameUI{
         Windows.setAnchor(Settings.Panel("SETTINGS").GetItem("GAMEOPTIONSUBMIT"), Windows.direct.CENTER);
         
         Settings.Panel("BOARD").AddText("", "BOARD PATH (leave blank for random):");
-        Settings.Panel("BOARD").AddTextField("BOARDPATH", 12);
+        Settings.Panel("BOARD").AddTextField("BOARDPATH", 18);
+
+        Settings.Panel("WORDLIST").AddText("", "Wordlist.txt path:");
+        Settings.Panel("WORDLIST").AddTextField("WORDLISTPATH", 18);
 
         Settings.Panel("WINSCORE").AddText("", "Win Score:");
         Settings.Panel("WINSCORE").AddTextField("WinScore", 4);
@@ -429,6 +428,7 @@ public class GraphicalUI implements GameUI{
                 }
                 SettingsChange(options,
                     Settings.Panel("BOARD").GetItemText("BOARDPATH"),
+                    Settings.Panel("WORDLIST").GetItemText("WORDLISTPATH"),
                     winscore,minlength,
                     Settings.Panel("AUTOCONFIRM").GetItemText("AUTOCONFIRM"),
                     Settings.Panel("MUSIC").GetItemText("MusicStat"),

@@ -348,8 +348,10 @@ public class Windows extends JFrame{
                 break;
             case INFO:
                 JOptionPane.showMessageDialog(parent, text, title, JOptionPane.INFORMATION_MESSAGE);
+                break;
             case ERROR:
                 JOptionPane.showMessageDialog(parent, text, title, JOptionPane.ERROR_MESSAGE);
+                break;
             default:
                 break;
                 
