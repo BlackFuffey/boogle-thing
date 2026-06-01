@@ -86,6 +86,18 @@ public class GraphicalUI implements GameUI{
         return false;
     }
 
+
+    private void setActionListener(JComponent comp, ActionListener event){
+        if(comp instanceof JButton){
+            try{
+            ((JButton)comp).removeActionListener(((JButton)comp).getActionListeners()[0]);
+            }catch(IndexOutOfBoundsException n){
+            }
+            ((JButton)comp).addActionListener(event);
+            
+        }
+    }
+
     private GameOptions gameoptions;
     /**
      * Returns a human‑readable description of the supplied player’s type.
@@ -129,6 +141,7 @@ public class GraphicalUI implements GameUI{
      * @param level difficulty level for AI players, ignored for humans
      */
     private void validatePlayer(GameOptions options,String type, String name, String level){
+        new Throwable().printStackTrace();
         switch(type){
             case "AI":    
                 options.playerlist.add(new AIPlayer(name, boogle.player.AIPlayer.Level.fromValue(Integer.parseInt(level))));
@@ -164,15 +177,15 @@ public class GraphicalUI implements GameUI{
             MainMenu.Panel("SETTINGS").AddButton("start", "Start", null);
             MainMenu.Panel("SETTINGS").AddButton( "quit","Quit",null);
         }
-        ((JButton)MainMenu.Panel("SETTINGS").GetItem("quit")).addActionListener(e->{
+        setActionListener(MainMenu.Panel("SETTINGS").GetItem("quit"),(e->{
                 start.complete(false);
                 MainMenu.dispose();
-        });
-        ((JButton)MainMenu.Panel("SETTINGS").GetItem("start")).addActionListener(e ->{
+        }));
+        setActionListener(MainMenu.Panel("SETTINGS").GetItem("start"),(e ->{
             if(startCheck(options)){
                 start.complete(true);
                 MainMenu.dispose();
-        }});
+        }}));
         
         MainMenu.Created();
     }
@@ -311,7 +324,7 @@ public class GraphicalUI implements GameUI{
         Settings.Panel("PLAYERS").AddComboBox("PlayerSettingLevel",new String[]{"1","2","3","4","5"});
         Settings.Panel("PLAYERS").AddButton("PlayerSettingSubmit","Submit",null);
         }
-        ((JButton)Settings.Panel("PLAYERS").GetItem("PlayerSettingSubmit")).addActionListener(e->{
+        setActionListener(Settings.Panel("PLAYERS").GetItem("PlayerSettingSubmit"),(e->{
             validatePlayer(options,
             Settings.Panel("PLAYERS").GetItemText("PlayerSettingType"),
             Settings.Panel("PLAYERS").GetItemText("PlayerSettingName"),
@@ -319,7 +332,7 @@ public class GraphicalUI implements GameUI{
         );
             reEvalPlayerlist(options);
             if (this.playSfx) GameSound.ok();
-        });
+        }));
          
         //update players
         if(!Settings.isCreated()){
@@ -330,14 +343,14 @@ public class GraphicalUI implements GameUI{
         Settings.Panel("REMOVE").AddComboBox("Players",new String[1]);
         Settings.Panel("REMOVE").AddButton("removeConfirm", "REMOVE",null);
         }
-        ((JButton)Settings.Panel("REMOVE").GetItem("removeConfirm")).addActionListener(e->{
+        setActionListener(Settings.Panel("REMOVE").GetItem("removeConfirm"),(e->{
             try{
                 options.playerlist.remove(Integer.parseInt(Settings.Panel("REMOVE").GetItemText("Players"))-1);
                 reEvalPlayerlist(options);
                 if (this.playSfx) GameSound.ok();
             }catch(Exception n){
             }
-        });
+        }));
         //swap player positions
         if(!Settings.isCreated()){
         Settings.AddPanel("SETTINGS","SWAP",new FlowLayout());
@@ -348,7 +361,7 @@ public class GraphicalUI implements GameUI{
         Settings.Panel("SWAP").AddComboBox("TO", new String[1]);
         Settings.Panel("SWAP").AddButton("SWAPCONFIRM", "Swap!",null); 
         }
-        ((JButton)Settings.Panel("SWAP").GetItem("SWAPCONFIRM")).addActionListener(e->{
+        setActionListener(Settings.Panel("SWAP").GetItem("SWAPCONFIRM"),(e->{
             try{
                 int from = Integer.parseInt(Settings.Panel("SWAP").GetItemText("FROM"))-1;
                 int to =  Integer.parseInt(Settings.Panel("SWAP").GetItemText("TO"))-1;
@@ -361,7 +374,7 @@ public class GraphicalUI implements GameUI{
             }catch(Exception n){
                 if (this.playSfx) GameSound.bad();
             }
-        });
+        }));
         
         //rename
         if(!Settings.isCreated()){
@@ -372,14 +385,14 @@ public class GraphicalUI implements GameUI{
         Settings.Panel("RENAME").AddTextField("newName", 10);
         Settings.Panel("RENAME").AddButton("confirm", "Rename",null);
         } 
-        ((JButton)Settings.Panel("RENAME").GetItem("confirm")).addActionListener(e->{
+        setActionListener(Settings.Panel("RENAME").GetItem("confirm"),(e->{
             try{
             options.playerlist.get(Integer.parseInt(Settings.Panel("RENAME").GetItemText("player"))-1).setName(
                 Settings.Panel("RENAME").GetItemText("newName"));
             reEvalPlayerlist(options);
             if (this.playSfx) GameSound.ok();
         }catch(Exception n){}
-        });
+        }));
 
         //game settings
         if(!Settings.isCreated()){
@@ -416,7 +429,7 @@ public class GraphicalUI implements GameUI{
         Settings.Panel("MINWORDLENGTH").AddText("", "Min Word Length:");
         Settings.Panel("MINWORDLENGTH").AddTextField("MinWord", 4);
         }
-        ((JButton)Settings.Panel("SETTINGS").GetItem("GAMEOPTIONSUBMIT")).addActionListener(e->{
+        setActionListener(Settings.Panel("SETTINGS").GetItem("GAMEOPTIONSUBMIT"),(e->{
             try{
                 int winscore=0;
                 int minlength=0;
@@ -437,7 +450,7 @@ public class GraphicalUI implements GameUI{
             }catch(Exception n){
                 Windows.CreateDialog(null,Windows.SubwindowOption.WARNING, "Argument Error", "There was an error Parsing field\nPlease try Again\nError Cause: "+n.getMessage());
             }
-        });
+        }));
 
         //loading 
         if(!Settings.isCreated()){
@@ -447,7 +460,7 @@ public class GraphicalUI implements GameUI{
             Settings.Panel("LOAD").AddTextField("SAVEPATH", 12);
             Settings.Panel("LOAD").AddButton("LOADBUTTON", "Load", null);
         }
-        ((JButton)Settings.Panel("LOAD").GetItem("LOADBUTTON")).addActionListener(e->{
+        setActionListener(Settings.Panel("LOAD").GetItem("LOADBUTTON"),(e->{
             try{
                 options.replacement = Launcher.fromSerialized(new FileInputStream(
                     Settings.Panel("LOAD").GetItemText("SAVEPATH")), this);
@@ -460,7 +473,7 @@ public class GraphicalUI implements GameUI{
             }catch(ClassNotFoundException n){
                 Windows.CreateDialog(Settings,Windows.SubwindowOption.ERROR,"Save File not Compatible",n.getMessage());
             }
-        });
+        }));
  
 
         Settings.Created();
@@ -601,7 +614,7 @@ public class GraphicalUI implements GameUI{
         if(!Results.isCreated()){
             Results.Panel("LAYOUT").AddButton("Lobby", "Continue >", null);
         }
-        ((JButton)Results.Panel("LAYOUT").GetItem("Lobby")).addActionListener(e->{toLobby.complete(null);});
+        setActionListener(Results.Panel("LAYOUT").GetItem("Lobby"),(e->{toLobby.complete(null);}));
         Results.Created();
         Results.pack();
     }
