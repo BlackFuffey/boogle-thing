@@ -166,6 +166,7 @@ public class GraphicalUI implements GameUI{
             MainMenu.AddPanel("MAIN", "LAYOUT", new BoxLayout(Game, BoxLayout.Y_AXIS));
             MainMenu.AddPanel("LAYOUT","TITLE",new FlowLayout());
             MainMenu.Panel("LAYOUT").AddText("warning", "Please Proceed to Settings to set up the Game!");
+            Windows.setAnchor(MainMenu.Panel("LAYOUT").GetItem("warning"), Windows.direct.CENTER);
             MainMenu.AddPanel("LAYOUT", "SETTINGS", new FlowLayout());
             MainMenu.Panel("SETTINGS").AddButton("settings","Settings",e->{
                 CreateSettings(options,start);
