@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Flow;
 
 
 //hi welcome to hell (efficiency is no longer a consideration (mostly))
@@ -271,10 +270,13 @@ public class GraphicalUI implements GameUI{
                     this.audio = GameSound.lobby();
                 }else{
                     this.playMusic=false;
+                    this.audio = GameSound.nothing();
                 }
             }
             if(SFX.equals("ON")){
-                playSfx = true;
+                if (!this.playSfx) {
+                    playSfx = true;
+                }
             }else{
                 playSfx=false;
             }
@@ -481,6 +483,7 @@ public class GraphicalUI implements GameUI{
         Settings.Created();
         Settings.pack();
         Settings.windowSize(Settings.getWidth()+500,Settings.getHeight());
+        reEvalPlayerlist(options);
         Settings.setVisible(true);
     }
 
@@ -583,7 +586,7 @@ public class GraphicalUI implements GameUI{
             Results.Panel("LAYOUT").AddText("title", "RESULT");
             Windows.setAnchor(Results.Panel("LAYOUT").GetItem("title"), Windows.direct.CENTER);
             Results.Panel("LAYOUT").GetItem("title").setFont(new Font("Ariel",Font.BOLD,50));
-            Results.AddPanel("LAYOUT", "LEADERBOARD",new GridLayout(leaderboard.size()+1,2));
+            Results.AddPanel("LAYOUT", "LEADERBOARD",new GridLayout(leaderboard.size()+1,3));
             Results.Panel("LAYOUT").AddText("seperator", "================");
             Windows.setAnchor(Results.Panel("LAYOUT").GetItem("seperator"), Windows.direct.CENTER);
             Results.Panel("LAYOUT").AddText("percentComplete", "");
@@ -596,10 +599,14 @@ public class GraphicalUI implements GameUI{
         //leaderboard construct
         Results.Panel("LEADERBOARD").AddText("title", "LEADERBOARD:");
         Results.Panel("LEADERBOARD").AddText(null, "");
+        Results.Panel("LEADERBOARD").AddText(null, "");
         int totscore=0;
         for(int i=0;i<leaderboard.size();i++){
+            int score=leaderboard.get(i).getValue();
             Results.Panel("LEADERBOARD").AddText(leaderboard.get(i).getKey(), leaderboard.get(i).getKey());
-            Results.Panel("LEADERBOARD").AddText(leaderboard.get(i).getKey()+"_Score",Integer.toString(leaderboard.get(i).getValue()));
+            Results.Panel("LEADERBOARD").AddText(leaderboard.get(i).getKey()+"_Score",Integer.toString(score));
+            Results.Panel("LEADERBOARD").AddText(leaderboard.get(i).getKey()+"_Completions",Integer.toString(100*score/maxScore)+"%");
+
             totscore+=leaderboard.get(i).getValue();
         }
 
@@ -639,13 +646,15 @@ public class GraphicalUI implements GameUI{
         
         CreateMenu(options,GameStart);
         MainMenu.setVisible(true);
-        
-        
+        try{
+            audio.stop();
+        }catch(Exception e){}
+        if (this.playMusic){ audio = GameSound.lobby();}
+        else{audio = GameSound.nothing();}
         try {
-            if (this.playMusic) audio = GameSound.lobby();
-            else audio = GameSound.nothing();
             if(GameStart.get()){
                 Settings.dispose();
+                audio.stop();
                 if (this.playMusic) audio = GameSound.ingame();
             }
             return GameStart.get();
