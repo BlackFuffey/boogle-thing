@@ -4,72 +4,69 @@ import java.util.*;
 import boogle.core.*;
 
 /**
- * Lightweight {@link Player} implementation representing a human user. A
- * {@code UIPlayer} delegates all decision‑making to the {@link GameUI}
- * implementation. Its {@link #nextMove()} method returns a sentinel value
- * telling the UI to solicit input from the user.
+ * Human player placeholder that delegates move collection to the active UI.
+ *
+ * <p>The game engine treats this player as a participant in ordering and
+ * scoring, but {@link #nextMove()} always returns {@link Player.Move.Type#DEFER}
+ * so the current {@link boogle.core.GameUI} can prompt the user.</p>
  */
 public class UIPlayer implements Player {
+    /** Player display name. */
     private String name;
+    /** Reusable move telling the engine to ask the UI for input. */
     private Player.Move deferMove = new Player.Move(Player.Move.Type.DEFER);
 
     /**
-     * Creates a new human player with the specified name.
+     * Creates a human player with a display name.
      *
-     * @param name display name of the player
+     * @param name player name shown in lobbies and leaderboards
      */
     public UIPlayer(String name) {
         this.name = name;
     }
 
     /**
-     * Changes the player’s display name.
+     * Changes the human player's display name.
      *
-     * @param name new name
+     * @param name new display name
      */
     public void setName(String name) {
         this.name = name;
     }
 
     /**
-     * Returns the current name of the player.
+     * Returns the human player's display name.
      *
-     * @return the player’s display name
+     * @return display name
      */
     public String getName() {
         return this.name;
     }
 
     /**
-     * Indicates that the UI should ask the user for a move. The game engine
-     * interprets the returned sentinel string and calls
-     * {@link GameUI#active()} on the associated UI. Implementations must not
-     * return {@code null} here; skipping is handled by the UI after
-     * prompting.
+     * Defers move selection to the active UI.
      *
-     * @return a sentinel value instructing the engine to defer to the UI
+     * @return a reusable defer move
      */
     public Player.Move nextMove() {
         return deferMove;
     }
 
     /**
-     * Human players do not maintain internal state between turns, so this
-     * method performs no operation.
+     * Ignores accepted-word notifications because human state lives in the UI.
      *
-     * @param a ignored
-     * @param b ignored
+     * @param a accepted word, ignored
+     * @param b next player name, ignored
      */
     public void updateGameState(String a, String b) {
         // do nothing
     }
 
     /**
-     * Human players do not need the board or dictionary ahead of time. This
-     * method is a no‑op for {@code UIPlayer}.
+     * Ignores board and dictionary state because the UI handles human input.
      *
-     * @param board ignored
-     * @param dictionary ignored
+     * @param board active board, ignored
+     * @param dictionary active dictionary, ignored
      */
     public void setGame(Gameboard board, Set<String> dictionary) {
         // do nothing

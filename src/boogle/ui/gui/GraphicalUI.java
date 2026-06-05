@@ -24,28 +24,34 @@ import java.util.concurrent.CompletableFuture;
 //hi welcome to hell (efficiency is no longer a consideration (mostly))
 
 /**
- * Experimental graphical user interface for Boogle. This implementation
- * attempts to provide a Swing‑based lobby and game board but remains a work
- * in progress. Many of the methods defined by {@link GameUI} are not
- * implemented and will throw {@link UnsupportedOperationException} when
- * invoked.
+ * Swing implementation of the Boogle user interface.
+ *
+ * <p>The GUI builds separate windows for the lobby, settings, game board, and
+ * results. It uses named panels from {@link Windows} so event handlers can
+ * update player lists, score labels, played words, and active-turn controls as
+ * the game engine advances.</p>
  */
 public class GraphicalUI implements GameUI{
-    /** Currently playing audio clip, used to manage music and sound effects. */
+    /**
+     * Creates a graphical UI with default settings and lazily built windows.
+     */
+    public GraphicalUI() {
+    }
+
     private Clip audio;
 
     private String CurrentPlayer;
 
-    /** When {@code true} the UI skips confirmation prompts and sleeps briefly. */
+    /**
+     * Automatic confirmation timing options for between-turn pauses.
+     */
     private enum Speed{
         Fast,
         Normal,
         OFF,
     }
     private Speed autoConfirm = Speed.Normal;
-    /** When {@code true} background music is played during the lobby and game. */
     private boolean playMusic = false;
-    /** When {@code true} sound effects are played on certain events. */
     private boolean playSfx = false;
 
     /*
@@ -54,25 +60,16 @@ public class GraphicalUI implements GameUI{
         PANEL - all caps
         component - lower
     */
-    /** Top‑level window for the lobby screen. */
     private Windows MainMenu = new Windows("lobby");
-    /** Window used during the game to show the board and scores. */
     private Windows Game = new Windows("Game");
-    /** Dialog for configuring players and options. */
     private Windows Settings = new Windows("Settings");
-    /** Window for displaying final results. */
     private Windows Results = new Windows("Results");
 
 
 
     //button methods
     /**
-     * Ensures that the game can begin. In the graphical UI a game may only
-     * start when at least one player has been added. If there are no
-     * players the method will display a warning dialog and return {@code false}.
-     *
-     * @param options current options containing the player list
-     * @return {@code true} if the game can start, {@code false} otherwise
+     * Checks whether the lobby has enough players to start and warns otherwise.
      */
     private Boolean startCheck(GameOptions options){
         if (options.playerlist.size() != 0) {
@@ -86,6 +83,9 @@ public class GraphicalUI implements GameUI{
     }
 
 
+    /**
+     * Replaces the first action listener on a button with a new one.
+     */
     private void setActionListener(JComponent comp, ActionListener event){
         if(comp instanceof JButton){
             try{
@@ -98,12 +98,7 @@ public class GraphicalUI implements GameUI{
     }
 
     /**
-     * Returns a human‑readable description of the supplied player’s type.
-     *
-     * @param player the player to describe
-     * @return {@code "Ai"} if the player is an {@link AIPlayer},
-     *         {@code "Human"} if the player is a {@link UIPlayer}, or
-     *         {@code null} if unknown
+     * Returns the display type label for a player.
      */
     private String getPlayerType(Player player){
         if(player instanceof AIPlayer){
@@ -115,11 +110,7 @@ public class GraphicalUI implements GameUI{
         return null;
     }
     /**
-     * Returns the AI level as a string for display purposes. Human players
-     * return {@code null}.
-     *
-     * @param player the player whose level to report
-     * @return the integer value of the AI level or {@code null} for humans
+     * Returns an AI player's numeric level for settings display.
      */
     private String getAILevel(Player player){
         if(player instanceof AIPlayer){
@@ -128,15 +119,7 @@ public class GraphicalUI implements GameUI{
         return null;
     }
     /**
-     * Adds a new player to the game based on UI input. This helper method
-     * interprets the selected type and level and appends a new instance to
-     * the {@code playerlist} contained within {@code options}.
-     *
-     * @param options mutable game options
-     * @param type player type as returned by the combo box ({@code "Ai"} or
-     *             {@code "Human"})
-     * @param name name of the new player
-     * @param level difficulty level for AI players, ignored for humans
+     * Adds a player to the options after validating the selected type and level.
      */
     private void validatePlayer(GameOptions options,String type, String name, String level){
         switch(type){
@@ -151,11 +134,7 @@ public class GraphicalUI implements GameUI{
 
     //windows setup
     /**
-     * Builds the initial lobby window including title, player list and
-     * settings buttons. This method is called lazily when the lobby is
-     * first displayed.
-     *
-     * @param options configuration options used to populate the player list
+     * Creates or refreshes the main lobby window and its start/quit actions.
      */
     private void CreateMenu(GameOptions options,CompletableFuture<Boolean> start){
         MainMenu.windowSize(true);
@@ -192,6 +171,9 @@ public class GraphicalUI implements GameUI{
     //settings button methods
     //update playerlist
     @SuppressWarnings("unchecked") //combobox warnings got annoying
+    /**
+     * Rebuilds player-list display panels and player-selection combo boxes.
+     */
     private void reEvalPlayerlist(GameOptions options){
         Settings.Panel("PLAYERLIST").Clear();
         ((JComboBox<?>)Settings.Panel("REMOVE").GetItem("Players")).removeAllItems();
@@ -225,6 +207,9 @@ public class GraphicalUI implements GameUI{
         Settings.Panel("PLAYERLIST").repaint();
     }
 
+    /**
+     * Applies game and presentation settings from the settings window.
+     */
     private void SettingsChange(GameOptions options,String boardpath,String wordlist, int winScore,int MinLength,String Auto,String Music, String SFX ){    
         try { 
             
@@ -291,11 +276,7 @@ public class GraphicalUI implements GameUI{
 
     //settings window
     /**
-     * Opens the settings dialog allowing users to add players and adjust
-     * their names and AI levels. Settings are applied directly to the
-     * provided {@code options} instance.
-     *
-     * @param options game options to modify
+     * Creates or refreshes the settings window and all of its action listeners.
      */
     private void CreateSettings(GameOptions options,CompletableFuture<Boolean> start){
         Settings.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -489,6 +470,9 @@ public class GraphicalUI implements GameUI{
 
     //Game Window
     //TODO: FIX LAYOUT
+    /**
+     * Creates or refreshes the game window for the current board and scoreboard.
+     */
     private void CreateGameWindow(Gameboard board, List<Entry<String, Integer>> leaderboard, ArrayList<String> playedWords, String currentPlayerName){
         char[][] boardChar = board.board;
         if(!Game.isCreated()){
@@ -579,6 +563,9 @@ public class GraphicalUI implements GameUI{
     }
 
     //create result screen
+    /**
+     * Creates or refreshes the results window and its continue action.
+     */
     private void CreateResult(List<Entry<String, Integer>> leaderboard, int skips, int maxScore,CompletableFuture<Void> toLobby){
         Results.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         if(!Results.isCreated()){ 
@@ -630,15 +617,7 @@ public class GraphicalUI implements GameUI{
 
 
     /**
-     * Displays the lobby window. The graphical lobby shows a title screen
-     * followed by the main menu. Because this implementation is still a
-     * prototype it simply opens the window and returns based on whether the
-     * Start button has been pressed. The text UI should be used for a
-     * complete experience.
-     *
-     * @param options game options to be modified by user input
-     * @return {@code true} if Start was pressed and at least one player has
-     *         been added; {@code false} otherwise
+     * Shows the Swing lobby and waits until the user starts, loads, or quits.
      */
     public boolean lobby(GameOptions options) {
         CompletableFuture<Boolean> GameStart = new CompletableFuture<>(); 
@@ -663,21 +642,13 @@ public class GraphicalUI implements GameUI{
         return false;
     }
     /**
-     * No‑op for the graphical UI. Resources such as windows and audio clips
-     * are disposed elsewhere.
+     * Closes this UI; currently no Swing-specific cleanup is required here.
      */
     public void close() throws Exception {
     }
 
     /**
-     * Displays the game window for the current turn. In the prototype the
-     * method constructs a panel containing the letter grid and shows it.
-     * Scoreboard and history display are not yet implemented.
-     *
-     * @param board the current board
-     * @param leaderboard list of players and scores (unused)
-     * @param playedWords list of previously played words (unused)
-     * @param currentPlayerName name of the player whose turn it is (unused)
+     * Updates and shows the game window for the beginning of a turn.
      */
     public void startTurn(Gameboard board, List<Entry<String, Integer>> leaderboard, ArrayList<String> playedWords, String currentPlayerName) {
         //game window construction
@@ -702,7 +673,7 @@ public class GraphicalUI implements GameUI{
     }
 
     /**
-     * Called when an AI player is thinking.
+     * Clears interactive controls while an AI player acts.
      */
     public void passive() {
         Game.Panel("STATUS").Clear();
@@ -711,8 +682,7 @@ public class GraphicalUI implements GameUI{
 
 
     /**
-     * Requests input from a human player.
-     * 
+     * Shows human turn controls and waits for the selected move.
      */
     public Player.Move active() {
         CompletableFuture<Player.Move> Input = new CompletableFuture<>();
@@ -740,7 +710,7 @@ public class GraphicalUI implements GameUI{
     }
     
     /**
-     * Reports the outcome of a player’s move.
+     * Displays the result of the most recent turn in the game window.
      */
     public void endTurn(TurnStatus status, String move, int scoreGained, int minWordLength) {
         Game.Panel("TURNSTATUS").AddText("TurnStatus", "");
@@ -791,7 +761,7 @@ public class GraphicalUI implements GameUI{
     }
     
     /**
-     * Waits for the user to acknowledge the end of a turn.
+     * Applies the configured automatic or manual between-turn confirmation.
      */
     public void confirm() {
         int speed=0;
@@ -823,12 +793,15 @@ public class GraphicalUI implements GameUI{
     }
     
 
+    /**
+     * Performs final acknowledgement after results; the GUI uses the results button instead.
+     */
     public void confirmForSure() {        
     }
 
     
     /**
-     * Displays the final results screen.
+     * Shows final scores and waits for the user to continue back to the lobby.
      */
     public void results(List<Entry<String, Integer>> leaderboard, int skips, int maxScore) {
         Game.dispose();

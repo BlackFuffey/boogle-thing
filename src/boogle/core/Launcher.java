@@ -7,79 +7,70 @@ import java.io.*;
 import boogle.player.*;
 
 /**
- * Launches a new Boogle game. The launcher holds a reference to a
- * {@link GameUI} and exposes methods for configuring game options, reading
- * the dictionary and board files and starting the {@link GameMaster}. It
- * serves as the bridge between user configuration in the lobby and the
- * underlying game engine.
+ * Top-level coordinator that moves between lobby setup, saved-game loading, and
+ * game execution.
+ *
+ * <p>The launcher owns the active {@link GameUI}, the mutable game options, and
+ * the current {@link GameMaster}. It is serializable so a running game can be
+ * saved and later restored with a newly supplied UI instance.</p>
  */
 public class Launcher implements Serializable {
     /**
-     * Mutable container of options that influence how a game is played. An
-     * instance of this class is passed to the UI to allow the user to set
-     * players, choose a dictionary and adjust rule parameters before the
-     * game begins. None of these fields are final so that the lobby may
-     * update them directly.
+     * Mutable settings collected by a UI before a game starts.
      */
     public static class GameOptions implements Serializable {
-        /** List of players in turn order. Must be non‑empty before starting. */
+        /**
+         * Creates an empty options container for a UI or caller to populate.
+         */
+        public GameOptions() {
+        }
+
+        /** Ordered players participating in the next game. */
         public ArrayList<Player> playerlist;
 
-        /** Path to the dictionary file from which to load valid words. */
+        /** Path to the dictionary file, read one word per line. */
         public String wordlistPath;
 
-        /**
-         * Optional custom board. When {@code null} the board will be
-         * generated randomly. When non‑null the array’s contents are used
-         * directly and must represent a rectangular matrix of uppercase
-         * letters.
-         */
+        /** Optional custom board; {@code null} means generate a random board. */
         public char[][] customBoard;
 
-        /** Minimum length for any word that may be played. */
+        /** Minimum legal word length; zero means no minimum. */
         public int minWordLength;
 
-        /**
-         * Score threshold required to win. A value of zero indicates that
-         * there is no winning score and the game ends only when skip limits
-         * are reached. Each point corresponds to one letter in a valid word.
-         */
+        /** Score needed to win; zero means the game has no score target. */
         public int winScore;
     
-        /** Replacement Launcher object, used for loading save files */
+        /** Loaded launcher that should replace this one before play resumes. */
         public Launcher replacement;
     }
 
-    /** User interface used to interact with the user during lobby and game. */
+    /** Active UI; transient because a restored launcher receives a fresh UI. */
     protected transient GameUI ui;
 
+    /** Current launcher options, retained across lobby/game cycles. */
     private GameOptions options;
 
+    /** Current or restored game master, when a game is in progress. */
     private GameMaster gm;
 
     /**
-     * Constructs a launcher bound to a specific user interface. The launcher
-     * does not take ownership of the UI; the caller remains responsible for
-     * closing it.
+     * Creates a launcher bound to a user-interface implementation.
      *
-     * @param ui the user interface to use for this session
+     * @param ui UI used for lobby interaction, turns, and results
      */
     public Launcher(GameUI ui) {
         this.ui = ui;
     }
 
     /**
-     * Starts the game using the supplied options. This method repeatedly
-     * presents the lobby, constructs the dictionary, instantiates a
-     * {@link GameMaster} and runs the game. It replaces each {@link AIPlayer}
-     * in the {@code playerlist} with a fresh instance configured with the
-     * same name and level so that state from previous rounds is not leaked.
-     * If any exception is thrown during setup or execution, the UI is
-     * closed and the method returns to the caller.
+     * Starts the lobby/game cycle using mutable options.
      *
-     * @param options mutable configuration prepared by the UI
+     * <p>The method repeatedly shows the lobby, rebuilds AI players so their
+     * transient search state is clean, loads the word list, creates a game
+     * master, and runs a game. If the lobby loads a save file, the loaded
+     * launcher replaces this launcher's state before continuing.</p>
      *
-     * @return if the caller should call again or not
+     * @param options initial game options to present in the lobby
      */
     public void start(GameOptions options) {
         this.options = options;
@@ -137,6 +128,19 @@ public class Launcher implements Serializable {
         } }
     }
 
+    /**
+     * Writes a generated tournament board and its complete ordered answer list.
+     *
+     * <p>The board output contains the board grid. The word-list output contains
+     * every word a perfect AI can find on that board, numbered from highest-value
+     * words to lowest-value words.</p>
+     *
+     * @param options source options for dictionary path, minimum word length, and
+     *        optional custom board
+     * @param boardOutPath destination path for the printable board grid
+     * @param wordlistOutPath destination path for numbered possible moves
+     * @throws IOException if any input or output file cannot be read or written
+     */
     public static void writeTournamentFiles(GameOptions options, String boardOutPath, String wordlistOutPath) throws IOException{
         HashSet<String> dictionary = new HashSet<>();
 
@@ -183,15 +187,14 @@ public class Launcher implements Serializable {
     }
 
     /**
-     * Loads a custom game board from a text file. The file must contain
-     * whitespace‑separated characters, one row per line. All rows must have
-     * the same number of columns and each token must consist of exactly one
-     * character. Characters are converted to uppercase for consistency.
+     * Loads a whitespace-separated board file.
      *
-     * @param path file system path to the board definition
-     * @return a two‑dimensional array representing the board or {@code null}
-     *         if the file could not be parsed; error messages will be
-     *         printed to standard output when parsing fails
+     * <p>Every row must contain the same number of one-character cells. Letters
+     * are uppercased as they are loaded. The method prints the parsing error and
+     * returns {@code null} instead of throwing when the file is invalid.</p>
+     *
+     * @param path file containing a board grid
+     * @return loaded board, or {@code null} if the file could not be parsed
      */
     public static char[][] loadGameboardFile(String path) {
         try {
@@ -237,6 +240,11 @@ public class Launcher implements Serializable {
         }
     }
 
+    /**
+     * Replaces this launcher's serializable state with a loaded launcher.
+     *
+     * @param replacement launcher loaded from a save file
+     */
     private void replace(Launcher replacement) {
         this.options = replacement.options;
         this.ui = replacement.ui;
@@ -244,12 +252,28 @@ public class Launcher implements Serializable {
         this.options.replacement = null;
     }
 
+    /**
+     * Serializes this launcher, including any in-progress game master.
+     *
+     * @param out destination stream for Java object serialization
+     * @throws IOException if the launcher cannot be written
+     */
     public void serialize(OutputStream out) throws IOException {
         try (ObjectOutputStream objout = new ObjectOutputStream(out)){
             objout.writeObject(this);
         }
     }
 
+    /**
+     * Reads a saved launcher and attaches it to the current UI instance.
+     *
+     * @param in serialized launcher input stream
+     * @param ui UI that should control the restored launcher
+     * @return restored launcher with its transient UI field repopulated
+     * @throws IOException if deserialization fails while reading bytes
+     * @throws ClassNotFoundException if the save file references unavailable
+     *         classes
+     */
     public static Launcher fromSerialized(InputStream in, GameUI ui) throws IOException, ClassNotFoundException {
         try (ObjectInputStream objin = new ObjectInputStream(in)) {
             Launcher launcher = (Launcher) objin.readObject();

@@ -5,153 +5,134 @@ import java.util.*;
 import boogle.core.Launcher.GameOptions;
 
 /**
- * Contract between the game engine and a user interface implementation.
- * Implementations of this interface are responsible for presenting game
- * state to the user, gathering input during the lobby and on each turn,
- * and providing feedback such as scores and results. The lifecycle of a
- * {@code GameUI} typically consists of:
- * <ol>
- *   <li>Invoking {@link #lobby(GameOptions)} to allow players and options
- *       to be configured and to decide whether to start the game.</li>
- *   <li>For each turn, calling {@link #startTurn(Gameboard, List, ArrayList, String)}
- *       to render the board and scoreboard, followed by either
- *       {@link #active()} when the current player is human or
- *       {@link #passive()} when the current player is controlled by the AI.</li>
- *   <li>Calling {@link #endTurn(TurnStatus, String, int, int)} to report the
- *       outcome of the move and optionally pausing for user confirmation via
- *       {@link #confirm()}.</li>
- *   <li>After the game loop finishes, invoking {@link #results(List, int, int)}
- *       to display the final scoreboard, and finally {@link #confirmForSure()}
- *       to wait for the user before returning to the caller.</li>
- * </ol>
+ * Common contract implemented by all Boogle user interfaces.
+ *
+ * <p>The game engine calls this interface at each phase of play: first to let
+ * the user configure a lobby, then once per turn to display state, collect moves
+ * for human-controlled players, display turn outcomes, and finally present the
+ * results. Implementations may be blocking and interactive, as both the terminal
+ * and Swing UIs wait for user input during lobby setup, active turns, and
+ * confirmation prompts.</p>
+ *
+ * <p>For human players, {@link Player#nextMove()} returns a defer move and the
+ * engine calls {@link #active()} to obtain input from the UI. For AI players, the
+ * engine calls {@link #passive()} while the AI move is being chosen.</p>
  */
 public interface GameUI extends AutoCloseable {
 
     /**
-     * Displays the lobby screen and allows the user to configure game options
-     * such as player list, dictionary path, minimum word length and winning
-     * score. When this method returns {@code true} the game engine will
-     * proceed to the main loop using the updated {@code options}; returning
-     * {@code false} indicates that the user wishes to quit before starting.
+     * Shows the lobby and lets the user mutate the supplied game options.
      *
-     * @param options a mutable holder for game configuration. Implementations
-     *                should read and modify the fields of this object to
-     *                reflect the user’s choices.
-     * @return {@code true} to start the game, {@code false} to abort
+     * <p>The same {@link GameOptions} instance is passed by the launcher and is
+     * expected to be edited in place. A UI may add, remove, rename, reorder, or
+     * configure players; set a custom board; choose a word list; load a saved
+     * launcher into {@link GameOptions#replacement}; and adjust presentation
+     * options such as music or automatic confirmations.</p>
+     *
+     * @param options mutable launcher options that describe the game to start
+     * @return {@code true} when the launcher should start or resume a game, or
+     *         {@code false} when the user chose to quit from the lobby
      */
     public boolean lobby(GameOptions options);
 
     /**
-     * Called at the start of each player’s turn. Implementations should
-     * present the current game state to the user, including the letter board,
-     * current scores and list of played words. The current player’s name
-     * should be highlighted or otherwise indicated. The UI may also decide
-     * whether to gather input immediately or defer to {@link #passive()} or
-     * {@link #active()} depending on whether the current player is an AI.
+     * Displays the beginning-of-turn game state.
      *
-     * @param board the current {@link Gameboard}
-     * @param leaderboard an ordered list of player names and their scores,
-     *                    sorted descending by score
-     * @param playedWords a history of words that have been successfully played
-     * @param currentPlayerName the name of the player whose turn it is
+     * @param board current board used for word validation
+     * @param leaderboard player names and scores sorted from highest to lowest
+     * @param playedWords words that have already been accepted, in play order
+     * @param currentPlayerName display name of the player whose turn is starting
      */
     public void startTurn(Gameboard board, List<Map.Entry<String, Integer>> leaderboard, ArrayList<String> playedWords, String currentPlayerName);
 
     /**
-     * Indicates that it is not the user’s turn to move. This method should
-     * update the UI accordingly (for example, display a “thinking” message or
-     * animate an AI player) and then return immediately. It is invoked when
-     * the current player is controlled by the computer.
+     * Displays a non-interactive turn state for an automated player.
+     *
+     * <p>The game engine calls this after an AI player has already returned a
+     * move. Implementations use it only to show progress or clear interactive
+     * controls; no move should be collected here.</p>
      */
     public void passive();
 
     /**
-     * Requests a move from the human player. When called the UI should prompt
-     * the user to enter a word or to signal that they wish to skip their
-     * turn. Implementations must not modify any internal game state here; the
-     * returned value will be validated by the game engine. Returning
-     * {@code null} indicates that the player chooses to skip this turn.
+     * Collects a move from the active human player.
      *
-     * @return the move requested by user
+     * <p>Implementations translate UI commands into {@link Player.Move} values,
+     * including word submissions, skips, save requests, game stops, and leaving
+     * the game.</p>
+     *
+     * @return the move selected by the current human player
      */
     public Player.Move active();
 
     /**
-     * Enumeration of possible outcomes for a player’s move. These values
-     * provide context when reporting the result of a turn via
-     * {@link #endTurn(TurnStatus, String, int, int)}.
+     * Result categories that the engine reports after resolving a move.
      */
     public enum TurnStatus {
-        /** The word was valid, on the board and has been scored. */
+        /** A word was accepted and scored. */
         OK,
-        /** The player elected to skip this turn. */
+        /** The player skipped the turn. */
         SKIPPED,
-        /** The word was shorter than the minimum allowed length. */
+        /** The submitted word was shorter than the configured minimum. */
         TOO_SHORT,
-        /** The word has already been played earlier in this game. */
+        /** The submitted word was already accepted earlier in the game. */
         DUPLICATE,
-        /** The word was not found in the dictionary. */
+        /** The submitted word was not present in the active dictionary. */
         NOT_IN_DICT,
-        /** The word could not be formed on the current board. */
+        /** The submitted word could not be formed on the current board. */
         NOT_ON_BOARD,
 
-        /** Game state was saved successfully */
+        /** A save request completed successfully. */
         SAVE_OK,
 
-        /** Failed to save game */
+        /** A save request failed; the move string contains the error message. */
         SAVE_ERR,
 
-        /** Player stopped game */
+        /** The user requested that the game stop. */
         STOPPED,
 
-        /** Player left game */
+        /** The current player left the game. */
         PLAYER_LEFT
     }
 
     /**
-     * Called at the end of a player’s turn to communicate the result. The UI
-     * should display an appropriate message (and optionally play sound
-     * effects) based on the supplied {@code status}. If the status is
-     * {@link TurnStatus#OK} then the score gained should also be displayed.
-     * This method does not block waiting for user input; that should be done
-     * by {@link #confirm()} if desired.
+     * Displays the outcome of the current turn.
      *
-     * @param status the outcome of the attempted move
-     * @param move the word the player attempted to play (uppercase). May be
-     *             {@code null} when {@code status} is {@link TurnStatus#SKIPPED}
-     * @param scoreGained the number of points awarded for this move; ignored
-     *                    if the status is not {@code OK}
-     * @param minWordLength the minimum allowable word length for reference in
-     *                      error messages
+     * @param status classification of the turn outcome
+     * @param move accepted word, rejected word, or save error text depending on
+     *        {@code status}; may be {@code null} for outcomes with no associated
+     *        word
+     * @param scoreGained score awarded for an accepted word, otherwise zero
+     * @param minWordLength configured minimum word length, used by UIs when
+     *        explaining {@link TurnStatus#TOO_SHORT}
      */
     public void endTurn(TurnStatus status, String move, int scoreGained, int minWordLength);
 
     /**
-     * Pauses the UI to allow the user to read the end‑of‑turn message. When
-     * auto‑confirmation is enabled implementations may choose to return
-     * immediately after a short delay; otherwise they should block until the
-     * user acknowledges the message (for example, by pressing enter).
+     * Waits for the normal between-turn acknowledgement.
+     *
+     * <p>Depending on UI settings this may block until the user presses continue
+     * or sleep briefly for automatic confirmation.</p>
      */
     public void confirm();
 
     /**
-     * Forces the UI to wait for a definitive user acknowledgement. This
-     * method is typically called once after the results have been shown to
-     * prevent the game from immediately exiting back to the shell.
+     * Waits for a stronger final acknowledgement after the results screen.
+     *
+     * <p>The terminal implementation deliberately resists accidental key presses
+     * by waiting for input over a short time window; the GUI implementation has
+     * no extra behavior here because the results screen has its own continue
+     * button.</p>
      */
     public void confirmForSure();
 
     /**
-     * Displays the final results at the end of the game. Implementations
-     * should render the final leaderboard, the total number of skipped turns
-     * (expressed as calories in the terminal UI) and the theoretical maximum
-     * score obtainable on the given board. This method does not block; use
-     * {@link #confirmForSure()} afterwards if the caller needs to wait.
+     * Displays the final game results.
      *
-     * @param leaderboard list of player names and their final scores sorted
-     *                    descending by score
-     * @param skips total number of skipped turns across all players
-     * @param maxScore the maximum score possible for the generated board
+     * @param leaderboard final player names and scores sorted from highest to
+     *        lowest
+     * @param skips total number of skipped turns
+     * @param maxScore total score represented by all possible words on the board
      */
     public void results(List<Map.Entry<String, Integer>> leaderboard, int skips, int maxScore);
 }

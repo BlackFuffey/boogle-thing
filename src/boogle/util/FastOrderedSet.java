@@ -3,73 +3,47 @@ package boogle.util;
 import java.io.Serializable;
 import java.util.*;
 
-/*
- * java.util.LinkedHashSet is so ass it doesnt even have reverse iterator
- *
- * so heres our own version 
- * (i definately wasnt too lazy to code this myself and used an llm)
- */
 /**
- * A {@link Set} implementation that preserves insertion order and provides
- * constant‑time access to elements as well as the ability to iterate in
- * both forward and reverse order. Unlike {@link java.util.LinkedHashSet},
- * this set exposes {@link #pop()} and {@link #shift()} operations to remove
- * and return the last or first element respectively, as well as random
- * access by index via {@link #get(int)}. Internally the set is backed by a
- * doubly‑linked list and a {@link HashMap} for O(1) membership checks and
- * removals. Duplicate elements are ignored on addition. This class is not
- * thread‑safe; concurrent modifications may produce undefined behaviour.
+ * Ordered {@link Set} implementation with efficient membership checks and
+ * bidirectional iteration support.
  *
- * @param <T> the type of elements maintained by this set
+ * <p>The set stores elements in insertion order using a linked list and a hash
+ * map from value to list node. It provides normal forward iteration, reverse
+ * iteration, and convenience removal from either end. It is used by the board
+ * walker to remember visited cells and by the AI to keep possible moves ordered
+ * by word length.</p>
+ *
+ * @param <T> element type
  */
 public class FastOrderedSet<T> implements Set<T>, Serializable {
 
     /**
-     * Node used in the internal doubly‑linked list. Each node stores a
-     * reference to the contained value and pointers to the previous and
-     * next nodes in the sequence. Nodes are not exposed outside this class.
+     * Creates an empty ordered set.
      */
+    public FastOrderedSet() {
+    }
+
     private static class Node<T> implements Serializable {
-        /** Value stored at this position in the list. */
         private T val;
-        /** Pointer to the previous node in the list or {@code null} if this is the head. */
         private Node<T> prev;
-        /** Pointer to the next node in the list or {@code null} if this is the tail. */
         private Node<T> next;
 
-        /**
-         * Constructs a new node wrapping the specified value. Both next and
-         * previous pointers are initialised to {@code null}.
-         *
-         * @param val the value to store in the node
-         */
         private Node(T val) {
             this.val = val;
         }
     }
 
-    /**
-     * Pointer to the first element in the list. When the set is empty
-     * {@code head} is {@code null}.
-     */
+    /** First node in insertion order. */
     private Node<T> head;
-    /**
-     * Pointer to the last element in the list. When the set is empty
-     * {@code tail} is {@code null}.
-     */
+    /** Last node in insertion order. */
     private Node<T> tail;
-    /**
-     * Map from element values to their corresponding list nodes. Provides
-     * constant‑time membership checks and allows removal of arbitrary
-     * elements in O(1) time.
-     */
+    /** Membership and value-to-node lookup table. */
     private HashMap<T, Node<T>> map = new HashMap<>();
 
     /**
-     * Removes and returns the most recently added element (the tail) from
-     * the set. If the set is empty this method returns {@code null}.
+     * Removes and returns the most recently inserted element.
      *
-     * @return the last element in insertion order or {@code null} if the set is empty
+     * @return last element, or {@code null} when the set is empty
      */
     public T pop() {
         if (map.size() == 0)
@@ -84,10 +58,9 @@ public class FastOrderedSet<T> implements Set<T>, Serializable {
     }
 
     /**
-     * Removes and returns the element that was added earliest (the head)
-     * from the set. If the set is empty this method returns {@code null}.
+     * Removes and returns the oldest inserted element.
      *
-     * @return the first element in insertion order or {@code null} if the set is empty
+     * @return first element, or {@code null} when the set is empty
      */
     public T shift() {
         if (map.size() == 0)
@@ -101,14 +74,13 @@ public class FastOrderedSet<T> implements Set<T>, Serializable {
         return item;
     }
 
-    /**
-     * Adds the specified element to this set if it is not already present.
-     * Duplicate elements are ignored and the method returns {@code false}.
-     *
-     * @param val element to be added to the set
-     * @return {@code true} if the set did not already contain the specified element
-     */
     @Override
+    /**
+     * Adds a value to the end of the insertion order when absent.
+     *
+     * @param val value to add
+     * @return {@code true} if the value was new to the set
+     */
     public boolean add(T val) {
         if (map.containsKey(val)) return false;
 
@@ -126,13 +98,13 @@ public class FastOrderedSet<T> implements Set<T>, Serializable {
     }
 
     /**
-     * Returns the element at the specified index in insertion order. If the
-     * index is in the first half of the list the method traverses from the
-     * head; otherwise it traverses from the tail for efficiency.
+     * Returns the value at an insertion-order index.
      *
-     * @param index zero‑based index of the element to return
-     * @return the element at the specified position or {@code null} if the
-     *         index is out of bounds
+     * <p>The lookup walks from whichever end is closer. Invalid indexes are not
+     * range-checked and may return {@code null} or fail while traversing.</p>
+     *
+     * @param index zero-based insertion-order index
+     * @return value at the index, or {@code null} if traversal lands off-list
      */
     public T get(int index) {
         Node<T> at;
@@ -153,14 +125,13 @@ public class FastOrderedSet<T> implements Set<T>, Serializable {
         return at == null ? null : at.val;
     }
 
-    /**
-     * Removes the specified element from this set if it is present. The
-     * underlying node is unlinked from the list and removed from the map.
-     *
-     * @param o object to be removed from this set, if present
-     * @return {@code true} if the set contained the specified element
-     */
     @Override
+    /**
+     * Removes a value from the set.
+     *
+     * @param o value to remove
+     * @return {@code true} if the value was present
+     */
     public boolean remove(Object o) {
         Node<T> node = map.get(o);
         if (node == null) return false;
@@ -171,10 +142,9 @@ public class FastOrderedSet<T> implements Set<T>, Serializable {
     }
 
     /**
-     * Removes the specified node from the doubly‑linked list by updating
-     * neighbouring node pointers. This method does not update the map.
+     * Detaches a node from the linked list without touching the hash map.
      *
-     * @param node the node to unlink from the list
+     * @param node node to unlink
      */
     private void unlink(Node<T> node) {
         if (node.prev != null) node.prev.next = node.next;
@@ -186,55 +156,44 @@ public class FastOrderedSet<T> implements Set<T>, Serializable {
         node.prev = node.next = null;
     }
 
-    /**
-     * Returns {@code true} if this set contains the specified element.
-     * Membership checks are O(1).
-     *
-     * @param o element whose presence in this set is to be tested
-     * @return {@code true} if this set contains the specified element
-     */
     @Override
+    /**
+     * Checks whether a value is present.
+     */
     public boolean contains(Object o) {
         return map.containsKey(o);
     }
 
 
-    /**
-     * Returns the number of elements in this set.
-     *
-     * @return the number of elements in the set
-     */
     @Override
+    /**
+     * Returns the number of stored values.
+     */
     public int size() {
         return map.size();
     }
 
-    /**
-     * Returns {@code true} if this set contains no elements.
-     *
-     * @return {@code true} if the set is empty
-     */
     @Override
+    /**
+     * Checks whether the set contains no values.
+     */
     public boolean isEmpty() {
         return map.isEmpty();
     }
 
-    /**
-     * Removes all of the elements from this set. The set will be empty after
-     * this call returns.
-     */
     @Override
+    /**
+     * Removes every value from the set.
+     */
     public void clear() {
         head = tail = null;
         map.clear();
     }
 
     /**
-     * Returns an iterator over the elements in this set in reverse order
-     * (from most recently added to earliest). The iterator supports removal
-     * of elements via its {@link Iterator#remove()} method.
+     * Returns an iterator that walks elements from newest to oldest.
      *
-     * @return an iterator traversing the set in reverse insertion order
+     * @return reverse insertion-order iterator with remove support
      */
     public Iterator<T> reverseIterator() {
         return new Iterator<T>() {
@@ -267,23 +226,18 @@ public class FastOrderedSet<T> implements Set<T>, Serializable {
     }
 
     /**
-     * Returns an {@link Iterable} view of this set in reverse order. This
-     * convenience method simply returns a lambda invoking {@link #reverseIterator()}.
+     * Returns an iterable view over reverse insertion order.
      *
-     * @return an iterable that produces elements from newest to oldest
+     * @return iterable backed by {@link #reverseIterator()}
      */
     public Iterable<T> reverse() {
         return () -> reverseIterator();
     }
 
-    /**
-     * Returns an iterator over the elements in this set in insertion order.
-     * The iterator supports element removal via its {@link Iterator#remove()}
-     * method.
-     *
-     * @return an iterator traversing the set from oldest to newest element
-     */
     @Override
+    /**
+     * Returns a forward insertion-order iterator.
+     */
     public Iterator<T> iterator() {
         return new Iterator<T>() {
             Node<T> current = head;
@@ -309,14 +263,10 @@ public class FastOrderedSet<T> implements Set<T>, Serializable {
         };
     }
 
-    /**
-     * Returns an array containing all of the elements in this set in proper
-     * sequence (from oldest to newest). The returned array will be "safe"
-     * in that no references to it are maintained by this set.
-     *
-     * @return an array containing all of the elements in this set
-     */
     @Override
+    /**
+     * Copies values into a new object array in insertion order.
+     */
     public Object[] toArray() {
         Object[] arr = new Object[size()];
         int i = 0;
@@ -326,18 +276,10 @@ public class FastOrderedSet<T> implements Set<T>, Serializable {
         return arr;
     }
 
-    /**
-     * Returns an array containing all of the elements in this set in proper
-     * sequence; the runtime type of the returned array is that of the
-     * specified array. If the set fits in the specified array, it is
-     * returned therein. Otherwise, a new array is allocated with the
-     * runtime type of the specified array and the size of this set.
-     *
-     * @param a the array into which the elements of the set are to be stored
-     * @param <E> the component type of the array to contain the set
-     * @return an array containing the elements of the set
-     */
     @Override
+    /**
+     * Copies values into the supplied array type in insertion order.
+     */
     public <E> E[] toArray(E[] a) {
         int size = size();
         if (a.length < size) {
@@ -356,14 +298,10 @@ public class FastOrderedSet<T> implements Set<T>, Serializable {
         return a;
     }
 
-    /**
-     * Returns {@code true} if this set contains all of the elements in the
-     * specified collection. Membership checks are O(1) per element.
-     *
-     * @param c collection to be checked for containment in this set
-     * @return {@code true} if this set contains all elements of {@code c}
-     */
     @Override
+    /**
+     * Checks whether all values in a collection are present.
+     */
     public boolean containsAll(Collection<?> c) {
         for (Object o : c) {
             if (!contains(o)) return false;
@@ -371,14 +309,10 @@ public class FastOrderedSet<T> implements Set<T>, Serializable {
         return true;
     }
 
-    /**
-     * Adds all of the elements in the specified collection to this set if
-     * they're not already present.
-     *
-     * @param c collection containing elements to be added to this set
-     * @return {@code true} if this set changed as a result of the call
-     */
     @Override
+    /**
+     * Adds all values from a collection, preserving collection iteration order.
+     */
     public boolean addAll(Collection<? extends T> c) {
         boolean changed = false;
         for (T val : c) {
@@ -387,14 +321,10 @@ public class FastOrderedSet<T> implements Set<T>, Serializable {
         return changed;
     }
 
-    /**
-     * Removes from this set all of its elements that are also contained in the
-     * specified collection.
-     *
-     * @param c collection containing elements to be removed from this set
-     * @return {@code true} if this set changed as a result of the call
-     */
     @Override
+    /**
+     * Removes every value contained in a collection.
+     */
     public boolean removeAll(Collection<?> c) {
         boolean changed = false;
         for (Object o : c) {
@@ -403,15 +333,10 @@ public class FastOrderedSet<T> implements Set<T>, Serializable {
         return changed;
     }
 
-    /**
-     * Retains only the elements in this set that are contained in the
-     * specified collection. In other words, removes from this set all of
-     * its elements that are not contained in the specified collection.
-     *
-     * @param c collection containing elements to be retained in this set
-     * @return {@code true} if this set changed as a result of the call
-     */
     @Override
+    /**
+     * Keeps only values contained in a collection.
+     */
     public boolean retainAll(Collection<?> c) {
         boolean changed = false;
 

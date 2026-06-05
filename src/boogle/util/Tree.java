@@ -2,70 +2,64 @@ package boogle.util;
 
 import java.io.Serializable;
 
-/**
- * Generic tree node used to build simple hierarchical structures. Each
- * {@code Tree} stores a reference to its own value ({@link #self}) and a
- * mapping of children keyed by those children’s values. This class is
- * appropriate for representing tries, prefix trees or other simple graphs
- * where nodes can be looked up by value. It does not store parent
- * references and is not thread‑safe.
- *
- * @param <T> type of the value stored in each node
- */
-
 import java.util.HashMap;
 
+/**
+ * Minimal serializable tree node keyed by child value.
+ *
+ * <p>The AI uses this as a trie: each node represents one character, children
+ * are looked up by the next character, and a child keyed by {@code null} marks a
+ * terminating word.</p>
+ *
+ * @param <T> value type stored at each node
+ */
 public class Tree<T> implements Serializable {
-    /** Map of this node’s children keyed by their values. Children are
-     * accessible via {@link #getChild(Object)}. */
+    /** Child nodes keyed by child value. */
     private HashMap<T, Tree<T>> children = new HashMap<>();
-    /** The value stored at this node. Immutable once set. */
+    /** Value represented by this node. */
     private final T self;
 
     /**
-     * Constructs a new tree node containing the specified value and no
-     * children.
+     * Creates a node with the supplied value.
      *
-     * @param self the value to store in this node
+     * @param self value represented by this node
      */
     public Tree(T self) {
         this.self = self;
     }
 
     /**
-     * Returns the value stored at this node.
+     * Returns the value represented by this node.
      *
-     * @return the node’s value
+     * @return node value
      */
     public T self() {
         return self;
     }
 
     /**
-     * Inserts the given {@code child} node into this node’s children map.
-     * If a child with the same value already exists it will be replaced.
+     * Adds or replaces a child, keyed by the child's own value.
      *
-     * @param child the child node to add
+     * @param child child node to attach
      */
     public void addChild(Tree<T> child) {
         children.put(child.self, child);
     }
 
     /**
-     * Removes the child whose value equals {@code value} from this node’s
-     * children map. If no such child exists this method does nothing.
+     * Removes the child associated with a value.
      *
-     * @param value the value of the child to remove
+     * @param value child key to remove
      */
     public void removeChild(T value) {
         children.remove(value);
     }
 
     /**
-     * Retrieves the child node whose value equals {@code value}.
+     * Looks up a child by value.
      *
-     * @param value the key of the child to retrieve
-     * @return the child node or {@code null} if no such child exists
+     * @param value child key
+     * @return matching child, or {@code null} when absent
      */
     public Tree<T> getChild(T value) {
         return children.get(value);

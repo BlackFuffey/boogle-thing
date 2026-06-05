@@ -7,59 +7,42 @@ import boogle.core.GameUI.TurnStatus;
 import boogle.player.AIPlayer;
 
 /**
- * Coordinates a single match of Boogle. The {@code GameMaster} is responsible
- * for managing the list of players, loading or generating the game board,
- * enforcing the dictionary and word length rules, tracking scores and
- * communicating with the chosen {@link GameUI}. It encapsulates the
- * high‑level game loop and determines when the game has been won or should
- * terminate due to successive passes.
+ * Serializable controller for a single Boogle game.
+ *
+ * <p>The game master owns the board, dictionary, player order, scoreboard, and
+ * resume state for an in-progress match. It drives the turn loop, delegates
+ * input and rendering to a {@link GameUI}, validates submitted words, awards
+ * length-based points, and stops when a player reaches the winning score or all
+ * remaining players skip enough consecutive turns.</p>
  */
 public class GameMaster implements Serializable {
 
-    /** List of players participating in this game in turn order. */
+    /** Ordered list of participating players. */
     private List<Player> playerlist;
-    /**
-     * Set of valid words that may be played. Words are removed from the set
-     * after being played to prevent duplicates and trimmed to uppercase
-     * outside of this class.
-     */
+    /** Mutable uppercase dictionary of unplayed legal words. */
     private Set<String> dictionary;
-    /** Current game board on which words are played. */
+    /** Board used for the current match. */
     private Gameboard gameboard;
-    /** User interface used to present game state and accept moves. */
     private transient GameUI ui;
 
-    /** Launcher reference for serializing*/
+    /** Owning launcher, used for UI access and serialization. */
     private Launcher launcher;
 
-    /** Minimum allowed word length. Words shorter than this are rejected. */
+    /** Minimum accepted word length for this match. */
     private int minWordLen;
-    /**
-     * Winning score threshold. When a player’s accumulated score reaches or
-     * exceeds this value the game ends. A value of zero disables the
-     * threshold and produces an endless game.
-     */
+    /** Score target; zero disables score-target termination. */
     private int winScore;
 
     /**
-     * Constructs a new game master with the given settings.
+     * Creates a game controller with the supplied players and rules.
      *
-     * @param playerlist ordered list of players participating in the game. Each
-     *                   player will be asked to make a move in turn. The list
-     *                   is not copied so callers should not modify it during
-     *                   game play.
-     * @param dictionary set of valid uppercase words. Played words are
-     *                   removed from this set to prevent reuse.
-     * @param board predefined board to use or {@code null} to generate a
-     *              random board of standard size via {@link Gameboard#Gameboard()}.
-     * @param minWordLen minimum length of a valid word. Words shorter than
-     *                   this value will be rejected by the UI.
-     * @param winScore score needed to win. A value of zero means no score
-     *                 limit and the game will end only when all players have
-     *                 consecutively skipped twice around the table.
-     * @param ui user interface through which the game communicates with
-     *           players
-     * @param launcher launcher reference to serialize when user requests so
+     * @param playerlist ordered list of players who will take turns
+     * @param dictionary uppercase legal words available for play
+     * @param board custom board grid, or {@code null} to generate a random board
+     * @param minWordLen minimum accepted word length; zero disables the limit
+     * @param winScore target score; zero enables endless play until termination
+     *        by skips, stops, or leaving players
+     * @param launcher launcher that owns the UI and serialization state
      */
     public GameMaster(List<Player> playerlist, Set<String> dictionary, char[][] board, int minWordLen, int winScore,  Launcher launcher) {
         this.playerlist = playerlist;
@@ -76,7 +59,9 @@ public class GameMaster implements Serializable {
         this.launcher = launcher;
     }
 
-    /** Serializable state for a game that may be paused and resumed. */
+    /**
+     * Serializable mutable state needed to resume the match after saving.
+     */
     private static class GameState implements Serializable {
         private HashMap<Player, Integer> scoreboard = new HashMap<>();
         private HashSet<String> playedWords = new HashSet<>();
@@ -89,18 +74,17 @@ public class GameMaster implements Serializable {
         private int maxScore = 0;
     }
 
+    /** Current serializable progress state for this match. */
     private GameState state;
     /**
-     * Runs the main game loop. This method repeatedly asks each player for
-     * their move until either a winning score is reached or all players
-     * consecutively skip their turns twice. During each turn the method
-     * displays the board and score via the {@link GameUI}, validates the
-     * player’s input against the dictionary, length and board constraints,
-     * updates scores and internal state accordingly and notifies all players
-     * of the move. Upon termination the final results are displayed.
+     * Runs or resumes the game loop until a terminal condition is reached.
      *
-     * @throws IOException if the underlying UI throws an I/O exception while
-     *                     interacting with the terminal or files
+     * <p>On first entry the method initializes scores and computes the maximum
+     * possible board score using a perfect AI search. On resumed games it keeps
+     * the existing state and reconnects the transient UI through the launcher.</p>
+     *
+     * @throws IOException if a UI operation or save-related operation reports an
+     *         I/O failure to the game loop
      */
     public void begin() throws IOException {
         this.ui = launcher.ui;

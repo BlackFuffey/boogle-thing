@@ -7,32 +7,26 @@ import java.util.NoSuchElementException;
 import java.util.Random;
 
 /**
- * Simple utility representing a raffle of items that can be drawn without
- * replacement. A {@code Raffle} is initialised with a list of items and
- * allows random draws until the collection is exhausted. Items are not
- * returned to the pool once drawn. This class is not thread‑safe and
- * should not be accessed concurrently from multiple threads.
+ * Random draw bag that returns each item at most once.
  *
- * @param <T> the type of items contained in the raffle
+ * <p>The raffle copies the supplied list and tracks an active prefix. Drawing an
+ * item swaps it with the last active entry and shrinks the prefix, giving O(1)
+ * draws without replacement.</p>
+ *
+ * @param <T> item type stored in the raffle
  */
 public class Raffle<T> implements Serializable {
-    /** Internal list of remaining items. Elements drawn are replaced by
-     * {@code null} at the end of the active range but never physically
-     * removed from this list. */
+    /** Internal item storage, with the active portion at the front. */
     private final List<T> items;
-    /** Random number generator used to select the next item. */
+    /** Random source used to choose an active index. */
     private final Random random;
-    /** Number of items that have not yet been drawn. This value decreases
-     * with each call to {@link #draw()}. */
+    /** Number of items still available to draw. */
     private int remaining;
 
     /**
-     * Constructs a new raffle from the provided list of items. The input list
-     * is defensively copied so subsequent modifications to {@code items}
-     * will not affect the raffle. Passing {@code null} will result in an
-     * {@link IllegalArgumentException}.
+     * Creates a raffle from the supplied items.
      *
-     * @param items list of items from which draws will occur
+     * @param items source items to copy
      * @throws IllegalArgumentException if {@code items} is {@code null}
      */
     public Raffle(List<T> items) {
@@ -46,14 +40,10 @@ public class Raffle<T> implements Serializable {
     }
 
     /**
-     * Removes and returns a random item from the raffle. Each item can only be
-     * drawn once; subsequent calls will return the remaining items until the
-     * raffle is exhausted. Internally this method uses a swap‑with‑last
-     * technique to avoid O(n) removals. When no items remain a
-     * {@link NoSuchElementException} is thrown.
+     * Draws one random remaining item and removes it from future draws.
      *
-     * @return a randomly selected item from the remaining pool
-     * @throws NoSuchElementException if no items are left in the raffle
+     * @return randomly selected item
+     * @throws NoSuchElementException if no items remain
      */
     public T draw() {
         if (remaining == 0) {
@@ -75,18 +65,18 @@ public class Raffle<T> implements Serializable {
     }
 
     /**
-     * Returns {@code true} if all items have been drawn from this raffle.
+     * Checks whether all items have been drawn.
      *
-     * @return {@code true} when no items remain, {@code false} otherwise
+     * @return {@code true} when no items remain
      */
     public boolean isEmpty() {
         return remaining == 0;
     }
 
     /**
-     * Returns the number of items still available to draw.
+     * Returns the number of items that can still be drawn.
      *
-     * @return the count of undrawn items remaining
+     * @return remaining item count
      */
     public int size() {
         return remaining;

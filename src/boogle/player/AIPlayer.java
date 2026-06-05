@@ -8,42 +8,33 @@ import boogle.util.FastOrderedSet;
 import boogle.util.Tree;
 
 /**
- * Automated opponent for Boogle. An {@code AIPlayer} analyses the current
- * dictionary and board to determine all possible words and then selects
- * moves based on a configurable {@link Level} of skill. It maintains a
- * dynamic list of available words that is pruned as words are played or
- * other players move. This class also exposes a utility method to compute
- * the theoretical maximum score obtainable on a given board.
+ * Computer-controlled player that searches the board for legal words.
+ *
+ * <p>The AI builds a trie from the active dictionary, walks the board to find all
+ * words that can be played, and stores the results ordered by length. Difficulty
+ * levels control how much of that ordered list remains available and how strongly
+ * the AI favors the better half of its remaining moves.</p>
  */
 public class AIPlayer implements Player {
 
     /**
-     * Difficulty settings for {@link AIPlayer}s. Each level defines how
-     * aggressively the AI prunes its list of candidate words and how it
-     * selects among them:
-     * <ul>
-     *   <li>{@code PERFECT} – keeps all possible words and always plays the
-     *       highest‑scoring one. This level will never miss an opportunity.</li>
-     *   <li>{@code SMART} – retains roughly 70–90% of the available words and
-     *       chooses randomly from the longer half of that list.</li>
-     *   <li>{@code GOOD} – keeps about 30–50% of the words and selects
-     *       uniformly at random from the entire retained set.</li>
-     *   <li>{@code NORMAL} – prunes more aggressively, keeping approximately
-     *       10–20% of the words and preferring shorter words over longer ones
-     *       by randomly picking from the lower half.</li>
-     *   <li>{@code DUMB} – retains only a handful (≈5%) of the shortest
-     *       possible words and always plays the worst scoring move.</li>
-     * </ul>
-     * Each level is associated with an integer value used for user input.
+     * Difficulty levels from strongest to weakest.
+     *
+     * <p>The numeric value is used by the text and graphical settings screens.
+     * Higher levels retain more possible words and choose stronger moves.</p>
      */
     public enum Level {
+        /** Finds and can play every possible word, preferring the strongest word. */
         PERFECT(5),
+        /** Keeps a large share of possible words and favors stronger choices. */
         SMART(4),
+        /** Keeps a moderate share of possible words with mixed move quality. */
         GOOD(3),
+        /** Keeps fewer possible words and tends toward weaker choices. */
         NORMAL(2),
+        /** Keeps only a small share of possible words and prefers weak choices. */
         DUMB(1);
 
-        /** Numeric representation of the difficulty used for configuration. */
         private final int value;
 
         Level(int value) {
@@ -51,13 +42,11 @@ public class AIPlayer implements Player {
         }
 
         /**
-         * Maps a numeric difficulty to a {@link Level}. The integer must be
-         * between 1 and 5 inclusive; otherwise an exception is thrown.
+         * Converts a menu value to a difficulty level.
          *
-         * @param value numeric difficulty value
-         * @return corresponding level
-         * @throws IllegalArgumentException if the value does not correspond
-         *                                  to any defined level
+         * @param value integer value from 1 to 5
+         * @return matching level
+         * @throws IllegalArgumentException if no level has the supplied value
          */
         public static Level fromValue(int value) {
             for (Level l : Level.values()) {
@@ -69,79 +58,68 @@ public class AIPlayer implements Player {
         }
 
         /**
-         * Returns the integer value associated with this level. Higher
-         * numbers correspond to stronger AI.
+         * Returns the menu value for this difficulty.
          *
-         * @return the numeric difficulty value
+         * @return integer value from 1 to 5
          */
         public int getValue() {
             return value;
         }
     }
 
-    /** Difficulty setting controlling how the AI selects moves. */
+    /** Current AI difficulty level. */
     private Level level;
     /**
-     * Retrieves the current difficulty level.
+     * Returns this AI's current difficulty level.
      *
-     * @return the current {@link Level}
+     * @return configured difficulty
      */
     public Level getLevel() { return this.level; }
     /**
-     * Updates the AI’s difficulty setting. Changing the level will not
-     * immediately recalculate the available word list; a new game must be
-     * started for the change to take effect.
+     * Changes this AI's difficulty level.
      *
-     * @param level the new difficulty level
+     * @param level new difficulty
      */
     public void setLevel(Level level) { this.level = level; }
 
-    /**
-     * Collection of candidate words that the AI may play. The set preserves
-     * insertion order and allows efficient removal and access by index. It is
-     * populated lazily in {@link #initialize()} and pruned as words are played.
-     */
+    /** Remaining playable words ordered from shortest to longest. */
     private FastOrderedSet<String> available = null;
 
-    /** The current game board assigned to this player. */
+    /** Board supplied by the game engine for move computation. */
     private Gameboard board;
-    /** Set of valid words remaining to play. */
+    /** Dictionary supplied by the game engine for move computation. */
     private Set<String> dictionary;
 
-    /** Source of randomness used when selecting moves at non‑perfect levels. */
+    /** Random source used for non-perfect move selection. */
     private Random random = new Random();
 
-    /** Display name of this AI player. */
+    /** Player display name. */
     private String name;
 
 
     /**
-     * Sets the display name of this AI. Useful when renaming players in the
-     * lobby.
+     * Sets the display name used in UI screens and leaderboards.
      *
-     * @param name new name to assign
+     * @param name new player name
      */
     public void setName(String name) {
         this.name = name;
     }
 
     /**
-     * Returns the display name of this AI.
+     * Returns this AI player's display name.
      *
-     * @return the current player name
+     * @return player name
      */
     public String getName() {
         return name;
     }
 
     /**
-     * Constructs a new AI player. The AI is not immediately ready to play; it
-     * must be provided with a board and dictionary via {@link #setGame} and
-     * lazily initialised via {@link #initialize()} when the first move is
-     * requested.
+     * Creates an AI player with a name and difficulty.
      *
-     * @param name display name for the AI
-     * @param level difficulty setting controlling selection strategy
+     * @param name display name
+     * @param level initial difficulty
      */
     public AIPlayer(String name, Level level) {
         this.level = level;
@@ -149,14 +127,14 @@ public class AIPlayer implements Player {
     }
 
     /**
-     * Prepares the AI to play by computing all possible words on the current
-     * board. This method builds a prefix tree (trie) from the dictionary,
-     * performs a depth‑first search from every board position to collect
-     * words reachable by adjacent moves and then sorts and trims the
-     * resulting list according to the configured {@link #level}. The final
-     * candidate list is stored in {@link #available}. This method must only
-     * be called after {@link #setGame(Gameboard, Set)} has been invoked and
-     * will throw an exception otherwise.
+     * Builds the set of currently playable words for this AI.
+     *
+     * <p>The dictionary is converted into a trie, the board is searched from each
+     * matching starting cell, and the result list is sorted by length. The list is
+     * then trimmed according to the AI level so weaker levels have fewer strong
+     * moves available.</p>
+     *
+     * @throws IllegalStateException if the board or dictionary has not been set
      */
     private void initialize() {
         if (board == null || dictionary == null) {
@@ -238,20 +216,12 @@ public class AIPlayer implements Player {
     }
     
     /**
-     * Recursively explores the board to collect all words matching a given
-     * prefix tree. Starting from a particular {@link GameboardWalker} and a
-     * trie node corresponding to the current prefix, this method steps the
-     * walker in all possible directions, descends into the child node of
-     * {@code trie} matching the letter at the new position and recurs. When a
-     * terminating node (a child keyed by {@code null}) is encountered the
-     * walker’s journey is added to the result set. Backtracking ensures that
-     * each path is explored independently without revisiting tiles.
+     * Searches the board and dictionary trie from one current walker position.
      *
-     * @param walker traversal cursor that maintains the current path and
-     *               visited positions
-     * @param trie prefix tree node representing the current partial word
-     * @param collected accumulation set for discovered words
-     * @return the set of discovered words (same as {@code collected})
+     * @param walker current board path
+     * @param trie trie node matching the walker's current letter
+     * @param collected mutable set of words found so far
+     * @return {@code collected}, after adding every word found below this path
      */
     private static HashSet<String> dfs(GameboardWalker walker, Tree<Character> trie, HashSet<String> collected) {
         if (trie.getChild(null) != null)
@@ -272,21 +242,10 @@ public class AIPlayer implements Player {
     }
 
     /**
-     * Chooses the AI’s next move. On the first invocation this method
-     * triggers initialisation of the available word list. It then selects a
-     * word from {@link #available} according to the configured difficulty:
-     * <ul>
-     *   <li>{@link Level#PERFECT} returns the longest word.</li>
-     *   <li>{@link Level#DUMB} returns the shortest word.</li>
-     *   <li>For intermediate levels a random index within either the upper
-     *       or lower half of the list is selected. Whether the upper or
-     *       lower half is used depends on the level: SMART always picks from
-     *       the upper half, NORMAL always from the lower half, and GOOD picks
-     *       randomly between halves.</li>
-     * </ul>
-     * Returning {@code null} indicates that the AI has no moves left.
+     * Chooses the next AI move from remaining available words.
      *
-     * @return the word chosen by the AI, or {@code null} if none are left
+     * @return a word move when at least one word remains, or a leave move when
+     *         the AI has no legal words left
      */
     public Player.Move nextMove() {
         if (this.available == null)
@@ -329,12 +288,10 @@ public class AIPlayer implements Player {
     }
 
     /**
-     * Assigns the board and dictionary for this AI. These references are used
-     * when building the trie and searching for words. This method must be
-     * called before {@link #nextMove()} is invoked.
+     * Supplies the board and dictionary used to compute AI moves.
      *
-     * @param board the current game board
-     * @param dictionary the set of valid words for this game
+     * @param board active game board
+     * @param dictionary active dictionary of remaining legal words
      */
     public void setGame(Gameboard board, Set<String> dictionary) {
         this.board = board;
@@ -342,13 +299,10 @@ public class AIPlayer implements Player {
     }
 
     /**
-     * Removes the specified word from the AI’s list of available moves. This
-     * method is called after each turn to keep the AI’s internal list in sync
-     * with the dictionary used by the game engine.
+     * Removes an accepted word from this AI's available move set.
      *
-     * @param wordPlayed the word that was just played
-     * @param nextMove ignored by this implementation but provided for
-     *                 consistency with the {@link Player} interface
+     * @param wordPlayed word accepted on the previous turn
+     * @param nextMove name of the next player; ignored by this implementation
      */
     public void updateGameState(String wordPlayed, String nextMove) {
         if (available == null)
@@ -358,16 +312,11 @@ public class AIPlayer implements Player {
     }
 
     /**
-     * Calculates the theoretical maximum score that could be achieved on a
-     * given board using the current dictionary. This is done by creating a
-     * temporary {@link AIPlayer} with {@link Level#PERFECT}, initialising it
-     * with the supplied board and dictionary and summing the lengths of all
-     * available words. The result is used for reporting percentage scores at
-     * the end of the game.
+     * Computes the total score represented by every possible word on a board.
      *
-     * @param board the game board
-     * @param dictionary the set of valid words
-     * @return the sum of the lengths of all possible words on the board
+     * @param board board to search
+     * @param dictionary dictionary of candidate words
+     * @return sum of lengths of all words a perfect AI can find
      */
     public static int computeMaxScore(Gameboard board, Set<String> dictionary) {
         AIPlayer player = new AIPlayer("4chan.org", Level.PERFECT);     // we love 4chan
@@ -384,6 +333,16 @@ public class AIPlayer implements Player {
         return result;
     }
 
+    /**
+     * Computes every playable word on a board.
+     *
+     * <p>The returned list is ordered the same way the perfect AI stores moves:
+     * shortest words first and longest words last.</p>
+     *
+     * @param board board to search
+     * @param dictionary dictionary of candidate words
+     * @return list of all playable words
+     */
     public static List<String> computePossibleMoves(Gameboard board, Set<String> dictionary) {
         AIPlayer player = new AIPlayer("4chan.org", Level.PERFECT);     // we love 4chan
         

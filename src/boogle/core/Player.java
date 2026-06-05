@@ -4,84 +4,73 @@ import java.io.Serializable;
 import java.util.*;
 
 /**
- * Represents a participant in a Boogle game. Implementations may represent
- * either human players that interact through a UI or AI players that
- * automatically select words. The game engine communicates with a {@code Player}
- * to set up the game state, request moves and update the player with
- * information about other players’ moves.
+ * A participant in a Boogle game.
+ *
+ * <p>Players are serializable because the launcher can save an in-progress game.
+ * Implementations include human UI-backed players, which defer move collection
+ * to the active {@link GameUI}, and AI players, which inspect the current board
+ * and dictionary to produce word moves directly.</p>
  */
 public interface Player extends Serializable {
     /**
-     * Provides the player with the current board and dictionary. This method
-     * is invoked once before the first turn. Implementations should use the
-     * provided information to prepare any internal data structures (for
-     * example, build a trie of valid words) but must not modify the
-     * {@code board} or {@code dictionary} themselves.
+     * Supplies the board and dictionary that define the current game.
      *
-     * @param board the game board on which words will be played
-     * @param dictionary the set of valid words remaining to play
+     * <p>The engine calls this before play begins or resumes. AI implementations
+     * use the state to precompute possible words, while UI-backed players may
+     * ignore it because the UI collects their moves.</p>
+     *
+     * @param board board on which submitted words must be formable
+     * @param dictionary mutable dictionary of legal words remaining in the game
      */
     public void setGame(Gameboard board, Set<String> dictionary);
 
     /**
-     * Updates the player with information about the most recent move. After
-     * each turn the game engine invokes this method on all players (including
-     * the one who just played) to allow them to adjust their internal state.
-     * This method may remove the played word from the player’s list of
-     * available options or adjust strategies based on the next player.
+     * Notifies the player that the game state changed after an accepted word.
      *
-     * @param lastWordPlayed the word that was just played, or {@code null}
-     *                       when the current player skipped
-     * @param nextPlayer the name of the player who will move next
+     * @param lastWordPlayed word accepted on the previous turn
+     * @param nextPlayer name of the player who will act next
      */
     public void updateGameState(String lastWordPlayed, String nextPlayer);
 
     /**
-     * Represents a player's requested action for their turn.
-     * <p>
-         * A move may play a word, skip the turn, leave the game, or save the game.
-         * For {@link Type#WORD} moves, {@link #value} stores the word to play. For
-         * all other move types, {@link #value} is typically {@code null}.
+     * A single action returned by a player or UI for the game engine to process.
      */
     public static class Move implements Serializable{
         /**
-         * The kind of action requested by a player.
+         * Kinds of actions that can be taken during a turn.
          */
         public enum Type {
-            /** Play the word stored in {@link Move#value}. */
+            /** Submit {@link Move#value} as a word candidate. */
             WORD,
 
-            /** Skip the current turn without playing a word. */
+            /** Skip the current turn without scoring. */
             SKIP,
 
-            /** Leave the current game. */
+            /** Remove the current player from the rest of the game. */
             LEAVE,
 
-            /** Save the current game. */
+            /** Serialize the game to the path stored in {@link Move#value}. */
             SAVE,
 
-            /** Stop the current game for all players. */
+            /** Stop the current game and show results. */
             STOP,
             
-            /** Defer decision to UI */
+            /** Ask the active UI to collect the real move for a human player. */
             DEFER
         }
 
-        /** The requested move type. */
+        /** Type of action represented by this move. */
         public Type type;
 
-        /**
-         * Optional move payload. For {@link Type#WORD}, this is the word to
-         * play; For {@link Type#SAVE}, this is the path to save to.
-         * Otherwise, this variable is ignored.
-         */
+        /** Optional value associated with the action, such as a word or file path. */
         public String value = null;
 
         /**
-         * Creates a move with the given type and optional value.
+         * Creates a move with an explicit value.
          *
-         * @param type the kind of move being requested
-         * @param value the optional value associated with the move
+         * @param type action kind
+         * @param value word, path, or other action-specific text; may be
+         *        {@code null}
          */
         public Move(Type type, String value){
             this.type = type;
@@ -91,7 +80,7 @@ public interface Player extends Serializable {
         /**
          * Creates a move with no associated value.
          *
-         * @param type the kind of move being requested
+         * @param type action kind
          */
         public Move(Type type) {
             this(type, null);
@@ -99,26 +88,24 @@ public interface Player extends Serializable {
     }
 
     /**
-     * Requests the player’s next move. Implementations must not mutate their
-     * internal state in this method; all state updates should be done in
-     * {@link #updateGameState(String, String)}.
+     * Chooses the next move for this player.
      *
-     * @return the player’s requested move
+     * @return a concrete move for automated players, or {@link Move.Type#DEFER}
+     *         for human players whose input must be collected by the UI
      */
     public Move nextMove();
 
     /**
-     * Sets the display name for this player. The name may be shown in the
-     * user interface and on the scoreboard.
+     * Changes the player display name.
      *
-     * @param name the new player name
+     * @param name new name shown in lobbies, turn prompts, and leaderboards
      */
     public void setName(String name);
 
     /**
-     * Returns the display name of this player.
+     * Returns the player display name.
      *
-     * @return the player’s current name
+     * @return current player name
      */
     public String getName();
 }

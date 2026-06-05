@@ -7,22 +7,13 @@ import java.awt.*;
 import java.awt.event.*;
 
 /**
- * Collection of static factory methods used to create Swing components for the
- * graphical user interface. These helpers encapsulate common construction
- * patterns such as attaching an {@link ActionListener} or setting the
- * initial size of a text field. By centralising component creation here the
- * rest of the GUI code remains succinct and focused on layout rather than
- * instantiation details.
+ * Factory methods for Swing components used by {@link Windows.Panels}.
  */
 class Components {
     /**
-     * Creates a new {@link JButton} with the provided label and binds the
-     * given action listener to it. Buttons created via this method do not
-     * customise any other properties beyond the text and listener.
+     * Creates a button and installs its action listener.
      *
-     * @param word   the text to display on the button
-     * @param action the listener invoked when the button is pressed
-     * @return a new button with the specified text and action handler
+     * @return configured button
      */
     public static JButton addButton(String word, ActionListener action) {
         JButton button = new JButton(word);
@@ -30,38 +21,27 @@ class Components {
         return button;
     }
     /**
-     * Constructs a new {@link JLabel} initialised with the supplied text. The
-     * label has no custom styling applied; callers are free to adjust fonts
-     * or alignment after creation.
+     * Creates a text label.
      *
-     * @param text the text to render within the label
-     * @return a new label displaying {@code text}
+     * @return configured label
      */
     public static JLabel addLabel(String text) {
         JLabel label = new JLabel(text);
         return label;
     }
     /**
-     * Creates a new {@link JTextField} capable of holding a specified number
-     * of columns of text. The underlying document model is left at its
-     * default; use this helper when you simply need a text field of a given
-     * width.
+     * Creates a single-line text field with the requested column count.
      *
-     * @param length the number of columns the text field should accommodate
-     * @return a new text field with an initial column count of {@code length}
+     * @return configured text field
      */
     public static JTextField addTextField(int length) {
         JTextField textField = new JTextField(length);
         return textField;
     }
     /**
-     * Constructs a {@link JComboBox} populated with the provided array of
-     * options. No item is pre-selected; the caller may call
-     * {@link JComboBox#setSelectedIndex(int)} after construction if a default
-     * value is desired.
+     * Creates a string combo box from a list of options.
      *
-     * @param options the array of option strings to populate the combo box
-     * @return a combo box containing each element of {@code options}
+     * @return configured combo box
      */
     public static JComboBox<String> addComboBox(String[] options) {
         JComboBox<String> comboBox = new JComboBox<String>(options);  
@@ -72,48 +52,33 @@ class Components {
 
 
 /**
- * Window abstraction used by the graphical interface. A {@code Windows}
- * instance wraps a {@link JFrame} and maintains a hierarchy of named panels
- * for easy lookup and manipulation. Panels can be added to other panels
- * using a {@code parent} name and will automatically be registered in an
- * internal map. This class also exposes helpers for managing window size
- * and for posting warning dialogs.
+ * Thin {@link JFrame} wrapper that stores named panels and named components.
+ *
+ * <p>The GUI implementation uses this class to build screens incrementally and
+ * later retrieve components by string key when event listeners need to update
+ * labels, read fields, or clear panels.</p>
  */
 public class Windows extends JFrame{
     //panel inner class (for organization)
     /**
-     * Sub‑panel within a {@link Windows} instance. A {@code Panels}
-     * encapsulates its own child components and registers itself in its
-     * parent’s panel list. Components can be looked up by name via the
-     * {@link #GetItem(String)} method. The class exposes helper methods
-     * for adding buttons, labels, text fields and combo boxes, as well as
-     * methods for clearing all components and adjusting alignment relative
-     * to its container.
+     * Named panel that owns a map of named child components.
      */
     class Panels extends JPanel{
         //constructor
         /**
-         * Constructs a {@code Panels} object and registers it with its parent
-         * window. The panel becomes addressable via the given {@code name}.
+         * Creates a panel and registers it in a window-level panel map.
          *
-         * @param name      the key used to store this panel in the parent
-         * @param panelList the parent’s internal map of panels
+         * @param name panel key
+         * @param panelList map that should contain the new panel
          */
         public Panels(String name, HashMap<String, Panels> panelList) {
             panelList.put(name, this);
         }
 
-        /**
-         * A lookup table of component names to the actual {@link JComponent}
-         * instances contained in this panel. This map is populated by the
-         * {@code Add*} helper methods and cleared when {@link #Clear()} is invoked.
-         */
         private HashMap<String, JComponent> items = new HashMap<>();
 
         /**
-         * Removes all components from this panel and clears the internal
-         * component map. After invocation no components will be displayed and
-         * {@link #GetItem(String)} will return {@code null} for all keys.
+         * Removes all components and clears this panel's component map.
          */
         public void Clear() {
             items = new HashMap<String, JComponent>();
@@ -121,11 +86,7 @@ public class Windows extends JFrame{
         }
 
         /**
-         * Adds a new button to this panel.
-         *
-         * @param name   key used to store the button
-         * @param text   label displayed on the button
-         * @param action handler invoked when the button is clicked
+         * Adds a named button to this panel.
          */
         public void AddButton(String name, String text, ActionListener action) {
             items.put(name, Components.addButton(text, action));
@@ -133,10 +94,7 @@ public class Windows extends JFrame{
         }
 
         /**
-         * Adds a new label to this panel.
-         *
-         * @param name key used to store the label
-         * @param text text displayed by the label
+         * Adds a named label to this panel.
          */
         public void AddText(String name, String text) {
             items.put(name, Components.addLabel(text));
@@ -144,10 +102,7 @@ public class Windows extends JFrame{
         }
 
         /**
-         * Adds a new text field of a specified length to this panel.
-         *
-         * @param name   key used to store the text field
-         * @param length number of columns in the created text field
+         * Adds a named text field to this panel.
          */
         public void AddTextField(String name, int length) {
             items.put(name, Components.addTextField(length));
@@ -155,11 +110,7 @@ public class Windows extends JFrame{
         }
 
         /**
-         * Adds a new combo box populated with the provided options to this
-         * panel. The first option in the array will be selected by default.
-         *
-         * @param name    key used to store the combo box
-         * @param options list of selectable options for the combo box
+         * Adds a named combo box to this panel and selects the first option.
          */
         public void AddComboBox(String name, String[] options) {
             items.put(name, Components.addComboBox(options));
@@ -169,25 +120,14 @@ public class Windows extends JFrame{
 
         //accessor
         /**
-         * Retrieves a component stored within this panel by its key.
-         *
-         * @param component the name used when the component was added
-         * @return the stored component, or {@code null} if no component
-         *         exists under that name
+         * Returns a named child component.
          */
         public JComponent GetItem(String component) {
             return items.get(component);
         }
 
         /**
-         * Returns the textual value of a supported component. For text
-         * fields this returns the current text; for combo boxes it returns
-         * the selected item’s string representation. Other component types
-         * return {@code null}.
-         *
-         * @param component the component key
-         * @return the current value of a text field or combo box, or
-         *         {@code null} if the component is not one of those types
+         * Reads text from a named text field or selected value from a named combo box.
          */
         public String GetItemText(String component) {
             if (items.get(component) instanceof JTextField) {
@@ -217,6 +157,9 @@ public class Windows extends JFrame{
         ipady = 0; 
         */
 
+        /**
+         * Applies GridBagLayout constraints when this panel uses GridBagLayout.
+         */
         public void SetConstraint(JComponent component,GridBagConstraints constraints){
             if(this.getLayout() instanceof GridBagLayout){
                 if(constraints == null){
@@ -229,28 +172,17 @@ public class Windows extends JFrame{
     }
 
 //MAIN CLASS STUFF
-    /**
-     * Flag indicating whether this window has been initialised and shown at
-     * least once. The graphical UI uses this to avoid re‑building windows
-     * repeatedly.
-     */
+    /** Whether this window's one-time component tree has been built. */
     private boolean created; 
 
-    /**
-     * Mapping from panel names to their corresponding {@code Panels}
-     * instances. This allows nested panels to be looked up and added to
-     * other panels by name.
-     */
+    /** Registered panels keyed by caller-provided names. */
     private HashMap<String, Panels> panelList = new HashMap<String, Panels>();
 
     
     /**
-     * Constructs a new top‑level window with the specified title. The
-     * underlying frame is not yet visible; call {@link #windowSize(boolean)}
-     * or {@link #windowSize(int, int)} followed by {@link #setVisible(boolean)}
-     * to display it.
+     * Creates a named window.
      *
-     * @param title the title of the window displayed in its decoration
+     * @param title frame title
      */
     public Windows(String title) {
         this.setTitle(title); 
@@ -258,17 +190,14 @@ public class Windows extends JFrame{
     }
 
     /**
-     * Marks this window as having been created. This flag is used to
-     * prevent duplicate creation of UI elements.
+     * Marks the window as having had its one-time component tree created.
      */
     public void Created(){
         created = true;
     }
 
     /**
-     * Removes every registered panel from this window and clears the
-     * underlying map. This is useful when reconstructing the interface
-     * from scratch.
+     * Clears the registered panel map and removes all frame contents.
      */
     public void Clear(){
         panelList = new HashMap<String,Panels>();
@@ -276,11 +205,9 @@ public class Windows extends JFrame{
     }
     
     /**
-     * Toggles full‑screen mode for this window. When {@code fullscreen} is
-     * {@code true} the window is maximised to cover the entire screen. No
-     * action is taken when {@code fullscreen} is {@code false}.
+     * Maximizes the window when requested.
      *
-     * @param fullscreen whether the window should enter full‑screen mode
+     * @param fullscreen whether to maximize the frame to the full screen size
      */
     public void windowSize(boolean fullscreen){
         if(fullscreen){
@@ -288,28 +215,20 @@ public class Windows extends JFrame{
         }
     }
     /**
-     * Sets the preferred size of this window to the given width and height
-     * in pixels.
+     * Sets an explicit window size.
      *
-     * @param x the width of the window in pixels
-     * @param y the height of the window in pixels
+     * @param x window width in pixels
+     * @param y window height in pixels
      */
     public void windowSize(int x, int y){
         this.setSize(x,y);
     } 
     /**
-     * Creates and registers a new panel. The new panel will be added to
-     * either the window itself (if {@code parent} equals {@code "main"},
-     * case-insensitive) or to the panel identified by {@code parent}. The
-     * panel is assigned the specified layout manager. For {@link BoxLayout}
-     * instances this method wraps the layout to circumvent the awkward
-     * constructor requirements of {@code BoxLayout}.
+     * Creates a named panel and attaches it to either the frame or another panel.
      *
-     * @param parent the name of the panel to which the new panel should be
-     *               added, or {@code "main"} to add directly to the window
-     * @param name   the key under which to store the new panel
-     * @param layout the layout manager governing the new panel’s component
-     *               arrangement
+     * @param parent parent panel key, or {@code MAIN} to attach directly to the frame
+     * @param name key for the new panel
+     * @param layout layout manager to use for the new panel
      */
     public void AddPanel(String parent, String name, LayoutManager layout){
         Panels panel = new Panels(name,panelList);
@@ -332,14 +251,12 @@ public class Windows extends JFrame{
     }
 
     /**
-     * Displays a warning dialog with the specified title and message. This
-     * static convenience method delegates to
-     * {@link JOptionPane#showMessageDialog(java.awt.Component, Object, String, int)}
-     * using the warning message type.
+     * Shows an informational, warning, or error dialog.
      *
-     * @param parent the parent component of the dialog, may be {@code null}
-     * @param title  title string for the dialog window
-     * @param text   message to display within the dialog
+     * @param parent parent frame for the modal dialog; may be {@code null}
+     * @param type dialog icon/category to display
+     * @param title dialog title
+     * @param text dialog body text
      */
     public static void CreateDialog(Windows parent, SubwindowOption type, String title, String text){
         switch(type){
@@ -359,6 +276,9 @@ public class Windows extends JFrame{
     }
 
 
+    /**
+     * Dialog message categories supported by {@link #CreateDialog(Windows, SubwindowOption, String, String)}.
+     */
     enum SubwindowOption{
         WARNING,
         INFO,
@@ -367,12 +287,10 @@ public class Windows extends JFrame{
 
     //accessor
     /**
-     * Retrieves the panel associated with the given name. Panels are
-     * registered via {@link #AddPanel(String, String, LayoutManager)}.
+     * Returns a named panel registered in this window.
      *
-     * @param name key of the panel to retrieve
-     * @return the panel corresponding to {@code name} or {@code null} if
-     *         none exists
+     * @param name panel key
+     * @return matching panel, or {@code null} if no panel has that key
      */
     public Panels Panel(String name){
         return panelList.get(name);
@@ -381,14 +299,16 @@ public class Windows extends JFrame{
  
 
     /**
-     * Indicates whether {@link #Created()} has been called on this window.
+     * Reports whether the window has completed its one-time setup.
      *
-     * @return {@code true} if the window has been created, {@code false}
-     *         otherwise
+     * @return {@code true} after {@link #Created()} has been called
      */
     public boolean isCreated(){
         return created;
     }
+    /**
+     * Compass-style component alignment choices.
+     */
     enum direct{
         CENTER,
         NORTH,
@@ -402,13 +322,12 @@ public class Windows extends JFrame{
     }
 
     //TODO: outdated doc
-        /**
-         * Sets the alignment of this panel within its parent using a simple
-         * alignment code. See {@link #setAnchor(String)} documentation in
-         * {@link Panels} for the mapping between codes and positions.
-         *
-         * @param alignment cardinal alignment code (e.g. "C", "N", "SW")
-         */
+    /**
+     * Sets Swing alignment hints for a component according to a compass direction.
+     *
+     * @param comp component whose alignment hints should be changed
+     * @param alignment requested compass-style alignment
+     */
         public static void setAnchor(JComponent comp, direct alignment) {
             switch (alignment) {
                 case CENTER:
