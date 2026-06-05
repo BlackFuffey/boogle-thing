@@ -840,7 +840,14 @@ public class TextUI implements GameUI {
      * prevent the UI from closing immediately.
      */
     public void confirmForSure() {
-        console.nextLine();
+        long start = System.nanoTime();
+
+        long end = start;
+
+        while (end-start < 1_000_000_000) {
+            console.nextLine();
+            end = System.nanoTime();
+        }
     }
 
     /**
