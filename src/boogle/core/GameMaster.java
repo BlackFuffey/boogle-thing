@@ -119,13 +119,15 @@ public class GameMaster implements Serializable {
             player.setGame(gameboard, dictionary);
         }
 
-        gameloop: while (state.skipChain < (playerlist.size()-state.leftPlayers.size()) * 2) try {
+        gameloop: while (state.skipChain < (playerlist.size()-state.leftPlayers.size()) * 2) {
             Player currentPlayer = playerlist.get(state.atPlayer);
 
             if (state.leftPlayers.contains(currentPlayer)) {
                 state.atPlayer = (state.atPlayer+1) % playerlist.size();
                 continue;
             }
+
+        try {
 
             List<Map.Entry<String, Integer>> leaderboard = new ArrayList<>();
             for (Map.Entry<Player, Integer> entry : state.scoreboard.entrySet()) {
@@ -222,7 +224,7 @@ public class GameMaster implements Serializable {
                 break;
         } finally {
             ui.confirm();
-        }
+        }}
 
         List<Map.Entry<String, Integer>> leaderboard = new ArrayList<>();
         for (Map.Entry<Player, Integer> entry : state.scoreboard.entrySet()) {
