@@ -1,3 +1,9 @@
+/*
+ * File: TextUI.java
+ * Author: Ethan Ding
+ * Description: Implements the terminal-based Boogle user interface, including lobby menus, turn display, and prompts.
+ */
+
 package boogle.ui.tui;
 
 import boogle.core.*;

@@ -1,3 +1,9 @@
+/*
+ * File: StringUtils.java
+ * Author: Ethan Ding
+ * Description: Provides string padding and truncation helpers used when formatting terminal output.
+ */
+
 package boogle.util;
 
 /**

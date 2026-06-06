@@ -1,3 +1,9 @@
+/*
+ * File: GameMaster.java
+ * Author: Ethan Ding
+ * Description: Controls a Boogle match, including turn flow, scoring, dictionary validation, save state, and end-game handling.
+ */
+
 package boogle.core;
 
 import java.io.*;

@@ -1,3 +1,9 @@
+/*
+ * File: Main.java
+ * Author: Ethan Ding
+ * Description: Command-line entry point that selects the Boogle user interface and starts the launcher with default game options.
+ */
+
 import java.util.*;
 
 import boogle.core.Launcher.GameOptions;

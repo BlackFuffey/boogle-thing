@@ -1,3 +1,9 @@
+/*
+ * File: UIPlayer.java
+ * Author: Ethan Ding
+ * Description: Represents a human player whose moves are collected through the active user interface.
+ */
+
 package boogle.player;
 
 import java.util.*;

@@ -1,3 +1,9 @@
+/*
+ * File: Terminal.java
+ * Author: Ethan Ding
+ * Description: Provides ANSI terminal escape helpers for screen clearing, cursor visibility, and alternate buffer control.
+ */
+
 package boogle.util;
 
 /**

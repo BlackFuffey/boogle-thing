@@ -1,3 +1,9 @@
+/*
+ * File: AIPlayer.java
+ * Author: Ethan Ding
+ * Description: Implements a computer-controlled player that searches the board and chooses legal Boogle words automatically.
+ */
+
 package boogle.player;
 
 import java.util.*;

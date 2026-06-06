@@ -1,3 +1,9 @@
+/*
+ * File: GameSound.java
+ * Author: Ethan Ding
+ * Description: Loads and plays Boogle sound effects and background music resources.
+ */
+
 package boogle.sound;
 
 import javax.sound.sampled.*;

@@ -1,3 +1,9 @@
+/*
+ * File: Gameboard.java
+ * Author: Ethan Ding
+ * Description: Represents the Boogle board and provides helpers for generating boards and validating word paths.
+ */
+
 package boogle.core;
 
 import java.io.Serializable;

@@ -1,3 +1,9 @@
+/*
+ * File: Windows.java
+ * Author: Eric
+ * Description: Provides Swing window, panel, and component helpers used by the graphical Boogle interface.
+ */
+
 package boogle.ui.gui;
 
 import javax.swing.*;

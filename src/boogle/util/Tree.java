@@ -1,3 +1,9 @@
+/*
+ * File: Tree.java
+ * Author: Ethan Ding
+ * Description: Implements a serializable generic tree node used as a trie for board word searches.
+ */
+
 package boogle.util;
 
 import java.io.Serializable;

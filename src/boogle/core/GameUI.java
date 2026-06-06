@@ -1,3 +1,9 @@
+/*
+ * File: GameUI.java
+ * Author: Ethan Ding
+ * Description: Defines the shared interface used by all user interfaces to interact with with the game engine.
+ */
+
 package boogle.core;
 
 import java.util.*;

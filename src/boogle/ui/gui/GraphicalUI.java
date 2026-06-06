@@ -1,3 +1,9 @@
+/*
+ * File: GraphicalUI.java
+ * Author: Eric
+ * Description: Implements the Swing-based graphical user interface for Boogle lobby and gameplay interactions.
+ */
+
 package boogle.ui.gui;
 
 import boogle.core.*;

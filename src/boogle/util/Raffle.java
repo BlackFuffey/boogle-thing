@@ -1,3 +1,9 @@
+/*
+ * File: Raffle.java
+ * Author: Ethan Ding
+ * Description: Implements a random draw bag that selects each item at most once without replacement.
+ */
+
 package boogle.util;
 
 import java.io.Serializable;

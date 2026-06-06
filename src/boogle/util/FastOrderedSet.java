@@ -1,3 +1,9 @@
+/*
+ * File: FastOrderedSet.java
+ * Author: Ethan Ding
+ * Description: Provides an insertion-ordered set with efficient membership checks and forward or reverse traversal.
+ */
+
 package boogle.util;
 
 import java.io.Serializable;

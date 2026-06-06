@@ -1,3 +1,9 @@
+/*
+ * File: Player.java
+ * Author: Ethan Ding
+ * Description: Defines the common behavior required for all Boogle players implementations.
+ */
+
 package boogle.core;
 
 import java.io.Serializable;

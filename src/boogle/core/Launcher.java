@@ -1,3 +1,9 @@
+/*
+ * File: Launcher.java
+ * Author: Ethan Ding
+ * Description: Coordinates lobby setup, saved-game loading, game creation, and transitions between launcher and active gameplay.
+ */
+
 package boogle.core;
 
 import java.util.*;
