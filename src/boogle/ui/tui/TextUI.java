@@ -52,7 +52,7 @@ public class TextUI implements GameUI {
     private boolean playMusic = false;
     private boolean playSfx = false;
 
-    private int inputTimeout = 0;
+    private long inputTimeout = 0;
 
     /**
      * Runs the title screen and text lobby until the user starts, loads, or quits.
@@ -419,7 +419,7 @@ public class TextUI implements GameUI {
                     int input = Integer.parseInt(value);
                     if (input < 0 || input > 99)
                         throw new Exception();
-                    ui.inputTimeout = input * 1000;
+                    ui.inputTimeout = input * 1_000_000_000L;
                 } catch(Exception e) {
                     System.out.println("Invalid time limit value");
                     System.out.println("Enter an integer between 0 and 99, or use 0 for no limit");
@@ -503,7 +503,7 @@ public class TextUI implements GameUI {
             options.wordlistPath,
             options.customBoard == null ? "Generated" : "Custom",
             ui.autoConfirm ? "Yes" : "No",
-            ui.inputTimeout==0 ? "No Limit" : (ui.inputTimeout/1000)+"s",
+            ui.inputTimeout==0 ? "No Limit" : (ui.inputTimeout/1_000_000_000L)+"s",
             ui.playMusic ? "Yes" : "No",
             ui.playSfx ? "Yes" : "No"
         );
@@ -669,11 +669,17 @@ public class TextUI implements GameUI {
         System.out.println("    -giveup         --      give up and leave the game");
         System.out.println("    -save <path>    --      Save game");
         System.out.println("    -stop           --      Stop game\n");
-        System.out.printf(">>>  %s, make your move: ", currentPlayerName);
     
         String input;
 
-        int timer = 0;
+        long timer = 0;
+        long lastUIUpdate = -1_000_000_000L;
+        long startTime = System.nanoTime();
+
+        if (inputTimeout != 0)
+            System.out.printf(">> %s, make your move (  s): ", currentPlayerName);
+        else 
+            System.out.printf(">> %s, make your move: ", currentPlayerName);
 
         // polling loop
         // (better than the others doing vibe coded multithreading slop)
@@ -682,13 +688,15 @@ public class TextUI implements GameUI {
             // the reason why I don't have the ANSI codes in Terminal.java
             // is because multiple syscalls are way slower than one syscall
             // pushing one buffer. And we want to minimize ui refresh time
-            if (timer % 1000 == 0) {
+            if (timer - lastUIUpdate >= 1_000_000_000L) {
                 System.out.printf(
-                    "\033[s\r%s, make your move (%02d): \033[u",
+                    "\033[s\r>> %s, make your move (%02ds): \033[u",
                     currentPlayerName,
-                    (inputTimeout-timer)/1000
+                    // some ceiling division magic
+                    Math.max(0, (inputTimeout - timer + 999_999_999L) / 1_000_000_000L)
                 );
                 System.out.flush();
+                lastUIUpdate = timer;
             }
 
             try { Thread.sleep(125); }   // polls 8 times per second
@@ -697,15 +705,15 @@ public class TextUI implements GameUI {
                 System.exit(-1);
             }
 
-            timer += 125;
+            timer = System.nanoTime() - startTime;
         }
 
         if (inputTimeout != 0 && inputTimeout-timer <= 0) {
             System.out.println();
             return new Player.Move(Player.Move.Type.TIMEOUT);
-        }
+        } 
 
-        input = console.readLine().trim().toLowerCase();
+        input = console.readLine().trim();
 
         String[] args = padArray(input.split(" ", 2), 2, "");
 
@@ -723,7 +731,7 @@ public class TextUI implements GameUI {
                 return new Player.Move(Player.Move.Type.STOP);
                 
             default:
-                return new Player.Move(Player.Move.Type.WORD, input);
+                return new Player.Move(Player.Move.Type.WORD, input.toLowerCase());
         }
     }
 
