@@ -29,7 +29,7 @@ import java.nio.charset.StandardCharsets;
  */
 public class TextUI implements GameUI {
     
-    private Scanner console = new Scanner(System.in);
+    private UncheckedBufferedReader console = new UncheckedBufferedReader(new InputStreamReader(System.in));
     private Clip audio;
 
     /**
@@ -52,6 +52,8 @@ public class TextUI implements GameUI {
     private boolean playMusic = false;
     private boolean playSfx = false;
 
+    private int inputTimeout = 0;
+
     /**
      * Runs the title screen and text lobby until the user starts, loads, or quits.
      *
@@ -67,7 +69,7 @@ public class TextUI implements GameUI {
             printTitleScreen();
             if (this.playMusic) audio = GameSound.intro();
             else audio = GameSound.nothing();
-            console.nextLine();
+            console.readLine();
             audio.stop();
 
             if (this.playMusic) audio = GameSound.lobby();
@@ -77,7 +79,7 @@ public class TextUI implements GameUI {
                 printMenuScreen(options, this);
                 Terminal.showCursor();
 
-                String[] cmd = padArray(console.nextLine().trim().split(" ", 2), 2, "");
+                String[] cmd = padArray(console.readLine().trim().split(" ", 2), 2, "");
                 Terminal.hideCursor();
 
                 switch(cmd[0].toLowerCase()) {
@@ -238,10 +240,10 @@ public class TextUI implements GameUI {
                     case "gen-tnmt": {
                         Terminal.showCursor();
                         System.out.print("Enter path to board file: ");
-                        String boardPath = console.nextLine();
+                        String boardPath = console.readLine();
 
                         System.out.print("Enter path to wordlist file: ");
-                        String wordlistPath = console.nextLine();
+                        String wordlistPath = console.readLine();
 
                         try { 
                             Launcher.writeTournamentFiles(options, boardPath, wordlistPath);
@@ -260,7 +262,7 @@ public class TextUI implements GameUI {
                 }
 
                 System.out.println("\n-- Press enter to continue --");
-                console.nextLine();
+                console.readLine();
             }
 
         } } catch (IOException e) {
@@ -337,30 +339,31 @@ public class TextUI implements GameUI {
      */
     private static boolean setOption(GameOptions options, TextUI ui, String key, String value) {
         switch(key) {
-            case "win_score":
+            case "win_score": {
                 try { 
-                    options.winScore = Integer.parseInt(value);
-                    if (options.winScore < 0)
+                    int input = Integer.parseInt(value);
+                    if (input < 0)
                         throw new Exception();
-                }
-                catch(Exception e) {
+                    options.winScore = input;
+                } catch(Exception e) {
                     System.out.println("Invalid winning score value");
                     System.out.println("Enter an integer bigger than 0, or use 0 for endless mode");
                     return false;
                 }
-            break;
+            } break;
 
-            case "min_word_length":
+            case "min_word_length": {
                 try { 
-                    options.minWordLength = Integer.parseInt(value);
-                    if (options.minWordLength < 0)
+                    int input = Integer.parseInt(value);
+                    if (input < 0)
                         throw new Exception();
+                    options.minWordLength = input;
                 } catch(Exception e) {
                     System.out.println("Invalid minimum word length value");
                     System.out.println("Enter an integer bigger than 0, or use 0 for no limit");
                     return false;
                 }
-            break;
+            } break;
 
             case "wordlist":
                 try { 
@@ -410,6 +413,19 @@ public class TextUI implements GameUI {
                 System.out.println("Please specify either 'yes' or 'no'");
                 return false;
             }
+
+            case "time_limit": {
+                try { 
+                    int input = Integer.parseInt(value);
+                    if (input < 0 || input > 99)
+                        throw new Exception();
+                    ui.inputTimeout = input * 1000;
+                } catch(Exception e) {
+                    System.out.println("Invalid time limit value");
+                    System.out.println("Enter an integer between 0 and 99, or use 0 for no limit");
+                    return false;
+                }
+            } break;
 
             case "music": {
                 if (value.equalsIgnoreCase("yes")) {
@@ -487,6 +503,7 @@ public class TextUI implements GameUI {
             options.wordlistPath,
             options.customBoard == null ? "Generated" : "Custom",
             ui.autoConfirm ? "Yes" : "No",
+            ui.inputTimeout==0 ? "No Limit" : (ui.inputTimeout/1000)+"s",
             ui.playMusic ? "Yes" : "No",
             ui.playSfx ? "Yes" : "No"
         );
@@ -652,9 +669,44 @@ public class TextUI implements GameUI {
         System.out.println("    -giveup         --      give up and leave the game");
         System.out.println("    -save <path>    --      Save game");
         System.out.println("    -stop           --      Stop game\n");
-        System.out.print(currentPlayerName + ", make your move: ");
+        System.out.printf(">>>  %s, make your move: ", currentPlayerName);
     
-        String input = console.nextLine().trim().toLowerCase();
+        String input;
+
+        int timer = 0;
+
+        // polling loop
+        // (better than the others doing vibe coded multithreading slop)
+        while (inputTimeout != 0 && !console.ready() && inputTimeout-timer > 0) {
+            // hopefully this is fast enough to not interfere with typing
+            // the reason why I don't have the ANSI codes in Terminal.java
+            // is because multiple syscalls are way slower than one syscall
+            // pushing one buffer. And we want to minimize ui refresh time
+            if (timer % 1000 == 0) {
+                System.out.printf(
+                    "\033[s\r%s, make your move (%02d): \033[u",
+                    currentPlayerName,
+                    (inputTimeout-timer)/1000
+                );
+                System.out.flush();
+            }
+
+            try { Thread.sleep(125); }   // polls 8 times per second
+            catch (InterruptedException e) {
+                e.printStackTrace();
+                System.exit(-1);
+            }
+
+            timer += 125;
+        }
+
+        if (inputTimeout != 0 && inputTimeout-timer <= 0) {
+            System.out.println();
+            return new Player.Move(Player.Move.Type.TIMEOUT);
+        }
+
+        input = console.readLine().trim().toLowerCase();
+
         String[] args = padArray(input.split(" ", 2), 2, "");
 
         switch (args[0]) {
@@ -733,6 +785,10 @@ public class TextUI implements GameUI {
                 System.out.printf("%s left the game!\n", currentPlayerName);
                 if (this.playSfx) GameSound.bad();
             break;
+            case TIMEOUT:
+                System.out.printf("%s was TAKING TOO LONG!\n", currentPlayerName);
+                if (this.playSfx) GameSound.bad();
+            break;
         }
 
         if (!this.autoConfirm) {
@@ -791,7 +847,7 @@ public class TextUI implements GameUI {
         long end = start;
 
         while (end-start < 1_000_000_000) {
-            console.nextLine();
+            console.readLine();
             end = System.nanoTime();
         }
     }
@@ -807,7 +863,7 @@ public class TextUI implements GameUI {
                 System.exit(-1);
             }
         } else {
-            console.nextLine();
+            console.readLine();
         }
     }
 

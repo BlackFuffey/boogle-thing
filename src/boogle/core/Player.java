@@ -62,7 +62,10 @@ public interface Player extends Serializable {
             STOP,
             
             /** Ask the active UI to collect the real move for a human player. */
-            DEFER
+            DEFER,
+
+            /** Turn timelimit exceeded */
+            TIMEOUT
         }
 
         /** Type of action represented by this move. */

@@ -98,7 +98,10 @@ public interface GameUI extends AutoCloseable {
         STOPPED,
 
         /** The current player left the game. */
-        PLAYER_LEFT
+        PLAYER_LEFT,
+
+        /** Player was TAKING TOO LONG */
+        TIMEOUT
     }
 
     /**

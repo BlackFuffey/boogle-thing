@@ -162,6 +162,14 @@ public class GameMaster implements Serializable {
                     break gameloop;
                 }
 
+                case TIMEOUT: {
+                    ui.endTurn(TurnStatus.TIMEOUT, null, 0, 0);
+                    state.skipChain++;
+                    state.totalSkips++;
+                    state.atPlayer = (state.atPlayer+1) % playerlist.size();
+                    continue;
+                }
+
                 case LEAVE: {
                     state.leftPlayers.add(currentPlayer);
                     ui.endTurn(TurnStatus.PLAYER_LEFT, null, 0, 0);
