@@ -259,11 +259,11 @@ public class GraphicalUI implements GameUI{
                 if (!this.playMusic) {
                     this.playMusic = true;
                     this.audio = GameSound.lobby();
-                }else{
-                    this.playMusic=false;
-                    this.audio = GameSound.nothing();
                 }
-            }
+            }else{
+                this.playMusic=false;
+                this.audio = GameSound.nothing();
+            }    
             if(SFX.equals("ON")){
                 if (!this.playSfx) {
                     playSfx = true;
@@ -475,7 +475,6 @@ public class GraphicalUI implements GameUI{
     }
 
     //Game Window
-    //TODO: FIX LAYOUT
     /**
      * Creates or refreshes the game window for the current board and scoreboard.
      */
