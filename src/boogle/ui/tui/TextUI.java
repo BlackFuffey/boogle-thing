@@ -417,12 +417,12 @@ public class TextUI implements GameUI {
             case "time_limit": {
                 try { 
                     int input = Integer.parseInt(value);
-                    if (input < 0 || input > 99)
+                    if (input < 0)
                         throw new Exception();
                     ui.inputTimeout = input * 1_000_000_000L;
                 } catch(Exception e) {
                     System.out.println("Invalid time limit value");
-                    System.out.println("Enter an integer between 0 and 99, or use 0 for no limit");
+                    System.out.println("Enter an integer bigger than 0, or use 0 for no limit");
                     return false;
                 }
             } break;
@@ -672,12 +672,14 @@ public class TextUI implements GameUI {
     
         String input;
 
+        int numLength = (int)Math.floor(Math.log10(inputTimeout / 1_000_000_000L)) + 1;
+
         long timer = 0;
         long lastUIUpdate = -1_000_000_000L;
         long startTime = System.nanoTime();
 
         if (inputTimeout != 0)
-            System.out.printf(">> %s, make your move (  s): ", currentPlayerName);
+            System.out.printf(">> %s, make your move (%0"+numLength+"ds): ", currentPlayerName, 0);
         else 
             System.out.printf(">> %s, make your move: ", currentPlayerName);
 
@@ -690,7 +692,7 @@ public class TextUI implements GameUI {
             // pushing one buffer. And we want to minimize ui refresh time
             if (timer - lastUIUpdate >= 1_000_000_000L) {
                 System.out.printf(
-                    "\033[s\r>> %s, make your move (%02ds): \033[u",
+                    "\033[s\r>> %s, make your move (%0"+numLength+"ds): \033[u",
                     currentPlayerName,
                     // some ceiling division magic
                     Math.max(0, (inputTimeout - timer + 999_999_999L) / 1_000_000_000L)
