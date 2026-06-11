@@ -149,8 +149,10 @@ public class GraphicalUI implements GameUI{
         if(!MainMenu.isCreated()){
             MainMenu.AddPanel("MAIN", "LAYOUT", new BoxLayout(Game, BoxLayout.Y_AXIS));
             MainMenu.AddPanel("LAYOUT","TITLE",new FlowLayout());
+            MainMenu.Panel("LAYOUT").AddText("welcome", "Welcome to Boggle(yes the typo is on purpose)!");
             MainMenu.Panel("LAYOUT").AddText("warning", "Please Proceed to Settings to set up the Game!");
             Windows.setAnchor(MainMenu.Panel("LAYOUT").GetItem("warning"), Windows.direct.CENTER);
+            Windows.setAnchor(MainMenu.Panel("LAYOUT").GetItem("welcome"), Windows.direct.CENTER);
             MainMenu.AddPanel("LAYOUT", "SETTINGS", new FlowLayout());
             MainMenu.Panel("SETTINGS").AddButton("settings","Settings",e->{
                 CreateSettings(options,start);
@@ -292,7 +294,7 @@ public class GraphicalUI implements GameUI{
             Settings.AddPanel("LAYOUT", "SETTINGS",new BoxLayout(Settings, BoxLayout.Y_AXIS));
             Settings.AddPanel("LAYOUT", "PLAYERLIST", new BoxLayout(Settings, BoxLayout.Y_AXIS));
             Settings.Panel("SETTINGS").AddText("title", "Settings");
-            Settings.Panel("SETTINGS").AddText("notice", "NOTICE: all settings Sections are saved individually");
+            Settings.Panel("SETTINGS").AddText("notice", "<html>NOTICE: all settings Sections are saved individually<br>close this window after submitting<html>");
             Settings.Panel("SETTINGS").AddText( "addplayertitle", "Add Player:");
             Settings.AddPanel("SETTINGS", "PLAYERS",new FlowLayout());
         }
