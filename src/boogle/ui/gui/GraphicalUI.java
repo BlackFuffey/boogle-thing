@@ -486,7 +486,7 @@ public class GraphicalUI implements GameUI{
             Game.AddPanel("MAIN", "LAYOUT", new GridBagLayout());
             Game.AddPanel("LAYOUT", "BOARD",new GridLayout(boardChar.length,boardChar[0].length,10,10));
             Game.Panel("LAYOUT").AddText("PLAYEDWORDSTITLE", "Played Words");
-            Game.AddPanel("LAYOUT", "PLAYEDWORDS",new GridLayout(0,10));
+            Game.AddPanel("LAYOUT", "PLAYEDWORDS",new FlowLayout());
             Game.AddPanel("LAYOUT", "LEADERBOARD",new GridLayout(0,2));
             Game.AddPanel("LAYOUT","TURNSTATUS", new BoxLayout(Game, BoxLayout.Y_AXIS));
             Game.Panel("LAYOUT").AddText("TurnName","");
@@ -545,7 +545,7 @@ public class GraphicalUI implements GameUI{
              0, 0));
         Game.Panel("LAYOUT").SetConstraint(Game.Panel("PLAYEDWORDS"),new GridBagConstraints(
             7, 1, 4, 5, 1, 1, 
-            GridBagConstraints.NORTH, GridBagConstraints.VERTICAL, new Insets(0, 0, 10, 0), 
+            GridBagConstraints.NORTH, GridBagConstraints.VERTICAL, new Insets(20, 20, 20, 20), 
             0, 0));
         //leaderboard
                 Game.Panel("LAYOUT").SetConstraint(Game.Panel("LEADERBOARD"),new GridBagConstraints(
