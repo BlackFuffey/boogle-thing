@@ -41,6 +41,12 @@ public interface GameUI extends AutoCloseable {
      */
     public boolean lobby(GameOptions options);
 
+    // so a cleaner way to do the startTurn - passive/active thing
+    // is probably to pass a game state object and let UI decide
+    // what to do with it.
+    // But at this point it'll be inconvinient to change GUI for 
+    // cleanness reasons, so nevermind
+
     /**
      * Displays the beginning-of-turn game state.
      *
@@ -67,9 +73,10 @@ public interface GameUI extends AutoCloseable {
      * including word submissions, skips, save requests, game stops, and leaving
      * the game.</p>
      *
+     * @param shakeHint If UI should hint the players to shake up board or not
      * @return the move selected by the current human player
      */
-    public Player.Move active();
+    public Player.Move active(boolean shakeHint);
 
     /**
      * Result categories that the engine reports after resolving a move.
@@ -101,7 +108,10 @@ public interface GameUI extends AutoCloseable {
         PLAYER_LEFT,
 
         /** Player was TAKING TOO LONG */
-        TIMEOUT
+        TIMEOUT,
+
+        /** Shook up the board */
+        SHAKE
     }
 
     /**

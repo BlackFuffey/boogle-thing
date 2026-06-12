@@ -93,6 +93,7 @@ public class AIPlayer implements Player {
 
     /** Board supplied by the game engine for move computation. */
     private Gameboard board;
+
     /** Dictionary supplied by the game engine for move computation. */
     private Set<String> dictionary;
 
@@ -146,8 +147,6 @@ public class AIPlayer implements Player {
         if (board == null || dictionary == null) {
             throw new IllegalStateException("Cannot initialize without game states");
         }
-
-        this.available = new FastOrderedSet<>();
 
         Tree<Character> trieRoot = new Tree<>(null);
         
@@ -218,6 +217,7 @@ public class AIPlayer implements Player {
 
         possibilities.subList(trimFrom, possibilities.size()).clear();
 
+        this.available = new FastOrderedSet<>();
         this.available.addAll(possibilities);
     }
     
@@ -250,12 +250,18 @@ public class AIPlayer implements Player {
     /**
      * Chooses the next AI move from remaining available words.
      *
+     * @param playedWords List of words already played and cannot be repeated
      * @return a word move when at least one word remains, or a leave move when
      *         the AI has no legal words left
      */
-    public Player.Move nextMove() {
+    public Player.Move nextMove(List<String> playedWords) {
         if (this.available == null)
             initialize();
+
+        for (int i = playedWords.size()-1; i >= 0; i--) {
+            if (!available.remove(playedWords.get(i)))
+                break;
+        }
 
         if (available.size() == 0) 
             return new Player.Move(Player.Move.Type.LEAVE);
@@ -302,19 +308,7 @@ public class AIPlayer implements Player {
     public void setGame(Gameboard board, Set<String> dictionary) {
         this.board = board;
         this.dictionary = dictionary;
-    }
-
-    /**
-     * Removes an accepted word from this AI's available move set.
-     *
-     * @param wordPlayed word accepted on the previous turn
-     * @param nextMove name of the next player; ignored by this implementation
-     */
-    public void updateGameState(String wordPlayed, String nextMove) {
-        if (available == null)
-            initialize();
-
-        available.remove(wordPlayed);
+        this.available = null;          // recompute possible words
     }
 
     /**

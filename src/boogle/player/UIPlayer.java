@@ -52,20 +52,11 @@ public class UIPlayer implements Player {
     /**
      * Defers move selection to the active UI.
      *
+     * @param playedWords List of words already played and cannot be repeated
      * @return a reusable defer move
      */
-    public Player.Move nextMove() {
+    public Player.Move nextMove(List<String> playedWords) {
         return deferMove;
-    }
-
-    /**
-     * Ignores accepted-word notifications because human state lives in the UI.
-     *
-     * @param a accepted word, ignored
-     * @param b next player name, ignored
-     */
-    public void updateGameState(String a, String b) {
-        // do nothing
     }
 
     /**

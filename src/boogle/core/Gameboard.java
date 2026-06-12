@@ -236,6 +236,9 @@ public class Gameboard implements Serializable {
      * Public board grid used by the UI renderers and AI search code.
      */
     public char[][] board;
+    // Yes this is abstraction leak, but It'll also be unneccesarily expensive
+    // if we were to use a private value and copy on every get().
+    // So we are just gonna trust caller here
 
     /** Map from a letter to all board coordinates containing that letter. */
     private HashMap<Character, ArrayList<int[]>> charLocs;

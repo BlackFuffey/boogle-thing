@@ -484,6 +484,7 @@ public class TextUI implements GameUI {
     private static void printTitleScreen() throws IOException {
         System.out.println(getAsset("asset/logo.txt"));
 
+        System.out.println("\n\t\t\t   -- Welcome to Boogle! --");
         System.out.println("\n\t\t\t-- Press enter to continue --\n");
     }
 
@@ -661,14 +662,18 @@ public class TextUI implements GameUI {
      *
      * @return move corresponding to the typed word or command
      */
-    public Player.Move active() {
+    public Player.Move active(boolean shake) {
         Terminal.showCursor();
         System.out.println("\nEnter your word of choice or a command");
         System.out.println("List of commands:");
         System.out.println("    -skip           --      skip this turn");
         System.out.println("    -giveup         --      give up and leave the game");
         System.out.println("    -save <path>    --      Save game");
-        System.out.println("    -stop           --      Stop game\n");
+        System.out.println("    -stop           --      Stop game");
+        System.out.println("    -shake          --      Shake up the board\n");
+
+        if (shake) 
+            System.out.println("HINT: can't find any more word? try shaking up the board!");
     
         String input;
 
@@ -731,6 +736,9 @@ public class TextUI implements GameUI {
 
             case "-stop":
                 return new Player.Move(Player.Move.Type.STOP);
+
+            case "-shake":
+                return new Player.Move(Player.Move.Type.SHAKE);
                 
             default:
                 return new Player.Move(Player.Move.Type.WORD, input.toLowerCase());
@@ -798,6 +806,10 @@ public class TextUI implements GameUI {
             case TIMEOUT:
                 System.out.printf("%s was TAKING TOO LONG!\n", currentPlayerName);
                 if (this.playSfx) GameSound.bad();
+            break;
+            case SHAKE:
+                System.out.printf("%s shook up the board!\n", currentPlayerName);
+                if (this.playSfx) GameSound.ok();
             break;
         }
 

@@ -691,7 +691,7 @@ public class GraphicalUI implements GameUI{
     /**
      * Shows human turn controls and waits for the selected move.
      */
-    public Player.Move active() {
+    public Player.Move active(boolean shakeUpBoard) {
         CompletableFuture<Player.Move> Input = new CompletableFuture<>();
 
         Game.Panel("STATUS").Clear();

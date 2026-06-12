@@ -31,14 +31,6 @@ public interface Player extends Serializable {
     public void setGame(Gameboard board, Set<String> dictionary);
 
     /**
-     * Notifies the player that the game state changed after an accepted word.
-     *
-     * @param lastWordPlayed word accepted on the previous turn
-     * @param nextPlayer name of the player who will act next
-     */
-    public void updateGameState(String lastWordPlayed, String nextPlayer);
-
-    /**
      * A single action returned by a player or UI for the game engine to process.
      */
     public static class Move implements Serializable{
@@ -61,11 +53,14 @@ public interface Player extends Serializable {
             /** Stop the current game and show results. */
             STOP,
             
+            /** Shake up the board */
+            SHAKE,
+
             /** Ask the active UI to collect the real move for a human player. */
             DEFER,
 
-            /** Turn timelimit exceeded */
-            TIMEOUT
+            /** Turn time limit exceeded */
+            TIMEOUT,
         }
 
         /** Type of action represented by this move. */
@@ -99,10 +94,12 @@ public interface Player extends Serializable {
     /**
      * Chooses the next move for this player.
      *
+     * @param playedWords List of words already played and cannot be repeated
+     *
      * @return a concrete move for automated players, or {@link Move.Type#DEFER}
      *         for human players whose input must be collected by the UI
      */
-    public Move nextMove();
+    public Move nextMove(List<String> playedWords);
 
     /**
      * Changes the player display name.

@@ -12,8 +12,7 @@
 [38;2;253;253;150m│[0m[38;2;200;200;200m   By default, there is no minimum word length. Each letter
 [38;2;253;253;150m│[0m[38;2;200;200;200m   in a word is worth 1 point, meaning longer words will earn 
 [38;2;253;253;150m│[0m[38;2;200;200;200m   you more points. The game ends either when someone reaches
-[38;2;253;253;150m│[0m[38;2;200;200;200m   a set win score, or when everyone skips their turn twice
-[38;2;253;253;150m│[0m[38;2;200;200;200m   in a row.
+[38;2;253;253;150m│[0m[38;2;200;200;200m   a set win score, or when everyone leaves the game
 [38;2;253;253;150m│[0m[38;2;200;200;200m
 [38;2;253;253;150m│[0m[38;2;200;200;200m   Try to maximize your total score by finding as many unique
 [38;2;253;253;150m│[0m[38;2;200;200;200m   words as possible.

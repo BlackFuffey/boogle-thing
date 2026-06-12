@@ -109,7 +109,7 @@ public class GameMaster implements Serializable {
             player.setGame(gameboard, dictionary);
         }
 
-        gameloop: while (state.skipChain < (playerlist.size()-state.leftPlayers.size()) * 2) {
+        gameloop: while (playerlist.size()-state.leftPlayers.size() > 0) {
             Player currentPlayer = playerlist.get(state.atPlayer);
 
             if (state.leftPlayers.contains(currentPlayer)) {
@@ -127,10 +127,10 @@ public class GameMaster implements Serializable {
 
             ui.startTurn(gameboard, leaderboard, state.playedWordList, currentPlayer.getName());
 
-            Player.Move move = currentPlayer.nextMove();
+            Player.Move move = currentPlayer.nextMove(state.playedWordList);
 
             if (move.type == Player.Move.Type.DEFER) {
-                move = ui.active();
+                move = ui.active(state.skipChain / playerlist.size()-state.leftPlayers.size() >= 2);
             } else {
                 ui.passive();
             }
@@ -176,6 +176,19 @@ public class GameMaster implements Serializable {
                     continue;
                 }
 
+                case SHAKE: {
+                    ui.endTurn(TurnStatus.SHAKE, null, 0, 0);
+                    gameboard = new Gameboard();
+                    
+                    for (Player player : playerlist) {
+                        player.setGame(gameboard, dictionary);
+                    }
+
+                    state.skipChain = 0;
+                    state.atPlayer = (state.atPlayer+1) % playerlist.size();
+                    continue;
+                }
+
                 default: 
                     throw new UnsupportedOperationException(move.type.toString() + " is not implemented");
             }
@@ -213,10 +226,6 @@ public class GameMaster implements Serializable {
             state.scoreboard.put(currentPlayer, state.scoreboard.get(currentPlayer)+scoreGained);
 
             state.atPlayer = (state.atPlayer+1) % playerlist.size();
-
-            for (Player player : playerlist) {
-                player.updateGameState(move.value, playerlist.get(state.atPlayer).getName());
-            }
 
             if (winScore > 0 && state.scoreboard.get(currentPlayer) >= winScore)
                 break;
