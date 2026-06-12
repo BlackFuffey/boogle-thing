@@ -56,7 +56,7 @@ public class GraphicalUI implements GameUI{
         Normal,
         OFF,
     }
-    private Speed autoConfirm = Speed.Normal;
+    private Speed autoConfirm = Speed.OFF;
     private boolean playMusic = false;
     private boolean playSfx = false;
 
@@ -459,6 +459,8 @@ public class GraphicalUI implements GameUI{
                 options.replacement = Launcher.fromSerialized(new FileInputStream(
                     Settings.Panel("LOAD").GetItemText("SAVEPATH")), this);
                     Windows.CreateDialog(Settings, Windows.SubwindowOption.INFO, "Success", "Loading Success!");
+                    MainMenu.dispose();
+                    Settings.dispose();
                     start.complete(true);
                     if (this.playSfx) GameSound.ok();
             }catch(IOException n){
@@ -693,6 +695,9 @@ public class GraphicalUI implements GameUI{
      */
     public Player.Move active(boolean shakeUpBoard) {
         CompletableFuture<Player.Move> Input = new CompletableFuture<>();
+        if(shakeUpBoard){
+            Game.Panel("TURNSTATUS").AddText("shake", "Try shaking up the board");
+        }
 
         Game.Panel("STATUS").Clear();
         Game.Panel("STATUS").AddText("Play", "Submit Word");
@@ -701,6 +706,11 @@ public class GraphicalUI implements GameUI{
             Input.complete(new Move(Player.Move.Type.WORD,Game.Panel("STATUS").GetItemText("UserInput")));
         });
         Game.Panel("STATUS").AddButton("Skip", "Skip", e->{Input.complete(new Move(Move.Type.SKIP));});
+        Game.Panel("STATUS").AddButton("ShakeBoard", "Shake up Board", e->{
+            Game.Panel("TURNSTATUS").Clear();
+            Game.Panel("TURNSTATUS").AddText("shaking", "Shaking board...");
+            Input.complete(new Move(Move.Type.SHAKE));
+        });
         Game.Panel("STATUS").AddButton("GiveUp", "Give up", e->{Input.complete(new Move(Move.Type.LEAVE));});
         Game.Panel("STATUS").AddText("saveTitle", "Save Game:");
         Game.Panel("STATUS").AddTextField("SavePath", 20);
@@ -720,6 +730,7 @@ public class GraphicalUI implements GameUI{
      * Displays the result of the most recent turn in the game window.
      */
     public void endTurn(TurnStatus status, String move, int scoreGained, int minWordLength) {
+        Game.Panel("TURNSTATUS").Clear();
         Game.Panel("TURNSTATUS").AddText("TurnStatus", "");
         switch (status) {
             case OK:
@@ -761,6 +772,10 @@ public class GraphicalUI implements GameUI{
             case PLAYER_LEFT:
                 ((JLabel)Game.Panel("TURNSTATUS").GetItem("TurnStatus")).setText("Player "+ this.CurrentPlayer+" Left the game");
                 if (this.playSfx) GameSound.bad();
+                break;
+            case SHAKE:
+                ((JLabel)Game.Panel("TURNSTATUS").GetItem("TurnStatus")).setText("Player "+ this.CurrentPlayer+" Shook up the Board!");
+                if (this.playSfx) GameSound.ok();
                 break;
             default:
                 break;

@@ -59,7 +59,6 @@ public class Main {
             } break;
 
             case "gui": {
-              System.out.println("NOTICE: testing only (WIP)");
               ui = new GraphicalUI();
                 //throw new UnsupportedOperationException("GUI doesnt compile so i disabled it for now");
             }break;
