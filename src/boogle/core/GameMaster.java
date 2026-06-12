@@ -130,7 +130,7 @@ public class GameMaster implements Serializable {
             Player.Move move = currentPlayer.nextMove(state.playedWordList);
 
             if (move.type == Player.Move.Type.DEFER) {
-                move = ui.active(state.skipChain / playerlist.size()-state.leftPlayers.size() >= 2);
+                move = ui.active(state.skipChain / (playerlist.size()-state.leftPlayers.size()) >= 2);
             } else {
                 ui.passive();
             }
